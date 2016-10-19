@@ -14,11 +14,13 @@ Flags:
   --insight-server=INSIGHT_SERVER
                                  log insight server address
   --insight-server-port=INSIGHT_SERVER_PORT
-                                 log insight server port
+                                 log insight server port defaults to 9543
   --insight-batch-size=INSIGHT_BATCH_SIZE
-                                 log insight batch size
-  --insight-field-prefix=INSIGHT_FIELD_PREFIX
-                                 field prefix for log insight
+                                 log insight batch size defaults to 5
+  --insight-reserved-fields=INSIGHT_RESERVED_FIELDS
+                                 comma delimited list of reserved fields defaults to event_type
+  --insight-agent-id=INSIGHT_AGENT_ID
+                                 agent id for log insight. Defaults to 1
   --subscription-id="firehose"   Id for the subscription.
   --user="admin"                 Admin user.
   --password="admin"             Admin password.

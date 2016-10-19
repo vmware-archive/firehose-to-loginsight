@@ -13,23 +13,23 @@ import (
 )
 
 type LogInsight struct {
-	LogInsightServer      *string
-	LogInsightPort        *int
-	LogInsightBatchSize   *int
-	LogInsightFieldPrefix *string
-	LogInsightAgentID     *string
-	Messages              Messages
+	LogInsightServer         *string
+	LogInsightPort           *int
+	LogInsightBatchSize      *int
+	LogInsightReservedFields []string
+	LogInsightAgentID        *string
+	Messages                 Messages
 }
 
 //NewLogging - Creates new instance of LogInsight that implments logging.Logging interface
-func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightFieldPrefix *string, logInsightAgentID *string) logging.Logging {
+func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightReservedFields *string, logInsightAgentID *string) logging.Logging {
 	return &LogInsight{
-		LogInsightServer:      logInsightServer,
-		LogInsightPort:        logInsightPort,
-		LogInsightBatchSize:   logInsightBatchSize,
-		LogInsightFieldPrefix: logInsightFieldPrefix,
-		LogInsightAgentID:     logInsightAgentID,
-		Messages:              Messages{},
+		LogInsightServer:         logInsightServer,
+		LogInsightPort:           logInsightPort,
+		LogInsightBatchSize:      logInsightBatchSize,
+		LogInsightReservedFields: strings.Split(*logInsightReservedFields, ","),
+		LogInsightAgentID:        logInsightAgentID,
+		Messages:                 Messages{},
 	}
 }
 
@@ -38,13 +38,21 @@ func (l *LogInsight) Connect() bool {
 }
 
 func (l *LogInsight) CreateKey(k string) string {
-	if strings.HasPrefix(k, *l.LogInsightFieldPrefix) {
-		return k
+	if contains(l.LogInsightReservedFields, k) {
+		return "cf_" + k
 	} else {
-		return *l.LogInsightFieldPrefix + k
+		return k
 	}
 }
 
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
 func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) {
 	message := Message{
 		Text: msg,
