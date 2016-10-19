@@ -31,7 +31,7 @@ var (
 	extraFields           = kingpin.Flag("extra-fields", "Extra fields you want to annotate your events with, example: '--extra-fields=env:dev,something:other ").Default("").OverrideDefaultFromEnvar("EXTRA_FIELDS").String()
 	logInsightServer      = kingpin.Flag("insight-server", "log insight server address").OverrideDefaultFromEnvar("INSIGHT_SERVER").String()
 	logInsightServerPort  = kingpin.Flag("insight-server-port", "log insight server port").OverrideDefaultFromEnvar("INSIGHT_SERVER_PORT").Int()
-	logInsightBatchSize   = kingpin.Flag("insight-batch-size", "log insight batch size").Default("50").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
+	logInsightBatchSize   = kingpin.Flag("insight-batch-size", "log insight batch size").Default("1").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
 	logInsightFieldPrefix = kingpin.Flag("insight-field-prefix", "field prefix for log insight tags").Default("cf_").OverrideDefaultFromEnvar("INSIGHT_FIELD_PREFIX").String()
 	logInsightAgentID     = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("1").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
 )

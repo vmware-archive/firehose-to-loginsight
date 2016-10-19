@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 )
@@ -39,11 +38,14 @@ func (l *LogInsight) Connect() bool {
 
 func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) {
 	message := Message{
-		Text:      msg,
-		Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
+		Text: msg,
 	}
 	for k, v := range eventFields {
-		message.Fields = append(message.Fields, Field{Name: *l.LogInsightFieldPrefix + k, Content: fmt.Sprint(v)})
+		if k == "timestamp" {
+			message.Timestamp = v.(int64)
+		} else {
+			message.Fields = append(message.Fields, Field{Name: *l.LogInsightFieldPrefix + k, Content: fmt.Sprint(v)})
+		}
 	}
 	l.Messages.Messages = append(l.Messages.Messages, message)
 
@@ -56,6 +58,7 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 			var req *http.Request
 			var resp *http.Response
 			if req, err = http.NewRequest("POST", url, bytes.NewBuffer(jsonstr)); err == nil {
+				req.Header.Add("Content-Type", "application/json")
 				client := &http.Client{Transport: tr}
 				if resp, err = client.Do(req); err == nil {
 					defer resp.Body.Close()
