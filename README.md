@@ -3,7 +3,7 @@ Firehose nozzle to pull events and send to LogInsight ingestion API inspired and
 
 # Options
 
-```
+```bash
 usage: firehose-to-loginsight --api-endpoint=API-ENDPOINT [<flags>]
 
 Flags:
@@ -58,7 +58,7 @@ We have 3 caching strategies:
 
 # To test and build
 
-
+```bash
     # Setup repo
     go get github.com/pivotalservices/firehose-to-loginsight
     cd $GOPATH/src/github.com/pivotalservices/firehose-to-loginsight
@@ -68,13 +68,14 @@ We have 3 caching strategies:
 
     # Build binary
     go build
-
+```
 # Run against a bosh-lite CF deployment
-
+```bash
     go run main.go \
 		--debug \
 		--skip-ssl-validation \
 		--api-endpoint="https://api.10.244.0.34.xip.io"
+```
 
 # Parsing the logs with Logstash
 
@@ -84,42 +85,53 @@ We have 3 caching strategies:
 
 1. Create doppler.firehose enabled user
 
-		uaac target https://uaa.[your cf system domain] --skip-ssl-validation
-		uaac token client get admin -s [your admin-secret]
-		cf create-user [firehose user] [firehose password]
-		uaac member add cloud_controller.admin [your firehose user]
-		uaac member add doppler.firehose [your firehose user]
+```bash
+uaac target https://uaa.[your cf system domain] --skip-ssl-validation
+uaac token client get admin -s [your admin-secret]
+cf create-user [firehose user] [firehose password]
+uaac member add cloud_controller.admin [your firehose user]
+uaac member add doppler.firehose [your firehose user]
+```
 
 2. Download the latest release of firehose-to-loginsight from GITHub releases (https://github.com/pivotalservices/firehose-to-loginsight/releases)
 
-       chmod +x firehose-to-loginsight
+```bash
+chmod +x firehose-to-loginsight
+```
 
 3. Utilize the CF cli to authenticate with your PCF instance.
 
-		cf login -a https://api.[your cf system domain] -u [your id] --skip-ssl-validation
+```bash
+cf login -a https://api.[your cf system domain] -u [your id] --skip-ssl-validation
+```
 
 4. Push firehose-to-loginsight.
-
-		cf push firehose-to-loginsight -c ./firehose-to-loginsight -b binary_buildpack -u none --no-start
+```bash
+cf push firehose-to-loginsight -c ./firehose-to-loginsight -b binary_buildpack -u none --no-start
+```
 
 5. Set environment variables with cf cli or in the [manifest.yml](./manifest.yml).
 
-		cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domain]
-		cf set-env firehose-to-loginsight DOPPLER_ENDPOINT wss://doppler.[your cf system domain]:443
-		cf set-env firehose-to-loginsight INSIGHT_SERVER [Your Log Insight IP]
-    cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port]
-    cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 50]
-    cf set-env firehose-to-loginsight INSIGHT_FIELD_PREFIX [Prefix for fields, default 'cf_']
-		cf set-env firehose-to-loginsight LOG_EVENT_TOTALS true
-		cf set-env firehose-to-loginsight LOG_EVENT_TOTALS_TIME "10s"
-		cf set-env firehose-to-loginsight SKIP_SSL_VALIDATION true
-		cf set-env firehose-to-loginsight FIREHOSE_SUBSCRIPTION_ID firehose-to-loginsight
-		cf set-env firehose-to-loginsight FIREHOSE_USER  [your doppler.firehose enabled user]
-		cf set-env firehose-to-loginsight FIREHOSE_PASSWORD  [your doppler.firehose enabled user password]
+```bash
+cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domain]
+cf set-env firehose-to-loginsight DOPPLER_ENDPOINT wss://doppler.[your cf system domain]:443
+cf set-env firehose-to-loginsight INSIGHT_SERVER [Your Log Insight IP]
+cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port]
+cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 50]
+cf set-env firehose-to-loginsight INSIGHT_FIELD_PREFIX [Prefix for fields, default 'cf_']
+cf set-env firehose-to-loginsight LOG_EVENT_TOTALS true
+cf set-env firehose-to-loginsight LOG_EVENT_TOTALS_TIME "10s"
+cf set-env firehose-to-loginsight SKIP_SSL_VALIDATION true
+cf set-env firehose-to-loginsight FIREHOSE_SUBSCRIPTION_ID firehose-to-loginsight
+cf set-env firehose-to-loginsight FIREHOSE_USER  [your doppler.firehose enabled user]
+cf set-env firehose-to-loginsight FIREHOSE_PASSWORD  [your doppler.firehose enabled user password]
+```
 
 6. Push the app.
 
-		cf push firehose-to-loginsight --no-route
+```bash
+cf push firehose-to-loginsight --no-route
+```
 
 # Contributors
 
