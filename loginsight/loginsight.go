@@ -57,7 +57,7 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 				client := &http.Client{Transport: tr}
 				if resp, err = client.Do(req); err == nil {
 					defer resp.Body.Close()
-					if resp.Status != "200" {
+					if resp.StatusCode != 200 {
 						body, _ := ioutil.ReadAll(resp.Body)
 						logging.LogError("Error posting data to log insight", string(body))
 					} else {
