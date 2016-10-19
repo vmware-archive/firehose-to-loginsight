@@ -92,7 +92,7 @@ We have 3 caching strategies:
 
 2. Download the latest release of firehose-to-loginsight from GITHub releases (https://github.com/pivotalservices/firehose-to-loginsight/releases)
 
-   chmod +x firehose-to-loginsight
+       chmod +x firehose-to-loginsight
 
 3. Utilize the CF cli to authenticate with your PCF instance.
 
