@@ -1,0 +1,7 @@
+vendor
+firehose-to-loginsight
+manifest.yml
+my.db
+run.sh
+.wercker
+test

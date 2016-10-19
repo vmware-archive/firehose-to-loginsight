@@ -1,0 +1,80 @@
+hash: cc34a499413011d39fe211844c5c26b9171b1b1f2e7d759e6e2b20c00944344a
+updated: 2016-10-18T12:39:51.834030708-05:00
+imports:
+- name: github.com/alecthomas/template
+  version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
+  subpackages:
+  - parse
+- name: github.com/alecthomas/units
+  version: 6b4e7dc5e3143b85ea77909c72caf89416fc2915
+- name: github.com/boltdb/bolt
+  version: 4d30731e9122988d2012a9574c43f80f054a0d3b
+- name: github.com/cloudfoundry-community/firehose-to-syslog
+  version: 2f0289cc7945c4cb44a27c4514c5d5cdcbee790a
+  subpackages:
+  - caching
+  - eventRouting
+  - firehoseclient
+  - logging
+  - events
+  - extrafields
+  - utils
+- name: github.com/cloudfoundry-community/go-cfclient
+  version: 113da20ed641ca3d56d09feec2ee37bda591f820
+- name: github.com/cloudfoundry/noaa
+  version: 0ca0d30d65c7422750132450593d402428dd2273
+  subpackages:
+  - consumer
+  - consumer/internal
+  - errors
+- name: github.com/cloudfoundry/sonde-go
+  version: 81c3f6be579cf4337477a8b0d03852d0760b5801
+  subpackages:
+  - events
+- name: github.com/gogo/protobuf
+  version: a4cceea7a401a73fefafd1a21fedbd4694124a82
+  subpackages:
+  - gogoproto
+  - proto
+  - protoc-gen-gogo/descriptor
+- name: github.com/golang/protobuf
+  version: 98fa357170587e470c5f27d3c3ea0947b71eb455
+  subpackages:
+  - proto
+- name: github.com/gorilla/websocket
+  version: a69d25be2fe2923a97c2af6849b2f52426f68fc0
+- name: github.com/mailru/easyjson
+  version: 3d7eb5818bd515e07588ded25d0d501516a0309d
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/Sirupsen/logrus
+  version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+  subpackages:
+  - hooks/syslog
+- name: golang.org/x/net
+  version: 7dbad50ab5b31073856416cdcfeb2796d682f844
+  subpackages:
+  - context
+- name: golang.org/x/oauth2
+  version: 2baa8a1b9338cf13d9eeb27696d761155fa480be
+  subpackages:
+  - internal
+- name: golang.org/x/sys
+  version: 9d4e42a20653790449273b3c85e67d6d8bae6e2e
+  subpackages:
+  - unix
+- name: google.golang.org/appengine
+  version: 5b8c3b819891014a2d12354528f7d046dd53c89e
+  subpackages:
+  - urlfetch
+  - internal
+  - internal/urlfetch
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/remote_api
+- name: gopkg.in/alecthomas/kingpin.v2
+  version: e9044be3ab2a8e11d4e1f418d12f0790d57e8d70
+devImports: []
