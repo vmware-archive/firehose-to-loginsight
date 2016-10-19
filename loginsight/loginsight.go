@@ -73,7 +73,7 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 					defer resp.Body.Close()
 					if resp.StatusCode != 200 {
 						body, _ := ioutil.ReadAll(resp.Body)
-						logging.LogError(fmt.Sprintf("Error posting data to log insight with status %d", resp.StatusCode), string(body))
+						logging.LogError(fmt.Sprintf("Error posting data to log insight with status %d and payload %s", resp.StatusCode, string(jsonstr)), string(body))
 						fmt.Println("response Status:", resp.Status)
 						fmt.Println("response Headers:", resp.Header)
 						fmt.Println("response Body:", string(body))
