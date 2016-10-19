@@ -33,20 +33,21 @@ var (
 	logInsightServerPort  = kingpin.Flag("insight-server-port", "log insight server port").OverrideDefaultFromEnvar("INSIGHT_SERVER_PORT").Int()
 	logInsightBatchSize   = kingpin.Flag("insight-batch-size", "log insight batch size").Default("50").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
 	logInsightFieldPrefix = kingpin.Flag("insight-field-prefix", "field prefix for log insight tags").Default("cf_").OverrideDefaultFromEnvar("INSIGHT_FIELD_PREFIX").String()
+	logInsightAgentID     = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("1").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
 )
 
 var (
-	Version = "0.0.0"
+	VERSION = "0.0.0"
 )
 
 func main() {
-	kingpin.Version(Version)
+	kingpin.Version(VERSION)
 	kingpin.Parse()
 
 	var loggingClient logging.Logging
 	//Setup Logging
-	loggingClient = loginsight.NewLogging(logInsightServer, logInsightServerPort, logInsightBatchSize, logInsightFieldPrefix)
-	logging.LogStd(fmt.Sprintf("Starting firehose-to-loginsight %s ", Version), true)
+	loggingClient = loginsight.NewLogging(logInsightServer, logInsightServerPort, logInsightBatchSize, logInsightFieldPrefix, logInsightAgentID)
+	logging.LogStd(fmt.Sprintf("Starting firehose-to-loginsight %s ", VERSION), true)
 
 	c := cfclient.Config{
 		ApiAddress:        *apiEndpoint,

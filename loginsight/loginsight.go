@@ -17,16 +17,18 @@ type LogInsight struct {
 	LogInsightPort        *int
 	LogInsightBatchSize   *int
 	LogInsightFieldPrefix *string
+	LogInsightAgentID     *string
 	Messages              Messages
 }
 
 //NewLogging - Creates new instance of LogInsight that implments logging.Logging interface
-func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightFieldPrefix *string) logging.Logging {
+func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightFieldPrefix *string, logInsightAgentID *string) logging.Logging {
 	return &LogInsight{
 		LogInsightServer:      logInsightServer,
 		LogInsightPort:        logInsightPort,
 		LogInsightBatchSize:   logInsightBatchSize,
 		LogInsightFieldPrefix: logInsightFieldPrefix,
+		LogInsightAgentID:     logInsightAgentID,
 		Messages:              Messages{},
 	}
 }
@@ -47,7 +49,7 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 
 	if len(l.Messages.Messages) >= *l.LogInsightBatchSize {
 		if jsonstr, err := json.Marshal(l.Messages); err == nil {
-			url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/1", *l.LogInsightServer, *l.LogInsightPort)
+			url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", *l.LogInsightServer, *l.LogInsightPort, *l.LogInsightAgentID)
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
@@ -59,7 +61,10 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 					defer resp.Body.Close()
 					if resp.StatusCode != 200 {
 						body, _ := ioutil.ReadAll(resp.Body)
-						logging.LogError("Error posting data to log insight", string(body))
+						logging.LogError(fmt.Sprintf("Error posting data to log insight with status %d", resp.StatusCode), string(body))
+						fmt.Println("response Status:", resp.Status)
+						fmt.Println("response Headers:", resp.Header)
+						fmt.Println("response Body:", string(body))
 					} else {
 						l.Messages = Messages{}
 					}
