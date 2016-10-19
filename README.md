@@ -83,7 +83,7 @@ We have 3 caching strategies:
 
 # Push as an App to Cloud Foundry
 
-1. Create doppler.firehose enabled user
+## Create doppler.firehose enabled user
 
 ```bash
 uaac target https://uaa.[your cf system domain] --skip-ssl-validation
@@ -93,24 +93,24 @@ uaac member add cloud_controller.admin [your firehose user]
 uaac member add doppler.firehose [your firehose user]
 ```
 
-2. Download the latest release of firehose-to-loginsight from GITHub releases (https://github.com/pivotalservices/firehose-to-loginsight/releases)
+## Download the latest release of firehose-to-loginsight from GITHub releases (https://github.com/pivotalservices/firehose-to-loginsight/releases)
 
 ```bash
 chmod +x firehose-to-loginsight
 ```
 
-3. Utilize the CF cli to authenticate with your PCF instance.
+## Utilize the CF cli to authenticate with your PCF instance.
 
 ```bash
 cf login -a https://api.[your cf system domain] -u [your id] --skip-ssl-validation
 ```
 
-4. Push firehose-to-loginsight.
+## Push firehose-to-loginsight.
 ```bash
 cf push firehose-to-loginsight -c ./firehose-to-loginsight -b binary_buildpack -u none --no-start
 ```
 
-5. Set environment variables with cf cli or in the [manifest.yml](./manifest.yml).
+## Set environment variables with cf cli or in the [manifest.yml](./manifest.yml).
 
 ```bash
 cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domain]
@@ -127,7 +127,7 @@ cf set-env firehose-to-loginsight FIREHOSE_USER  [your doppler.firehose enabled 
 cf set-env firehose-to-loginsight FIREHOSE_PASSWORD  [your doppler.firehose enabled user password]
 ```
 
-6. Push the app.
+## Push the app.
 
 ```bash
 cf push firehose-to-loginsight --no-route
