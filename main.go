@@ -33,7 +33,7 @@ var (
 	logInsightServerPort  = kingpin.Flag("insight-server-port", "log insight server port").OverrideDefaultFromEnvar("INSIGHT_SERVER_PORT").Int()
 	logInsightBatchSize   = kingpin.Flag("insight-batch-size", "log insight batch size").Default("1").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
 	logInsightFieldPrefix = kingpin.Flag("insight-field-prefix", "field prefix for log insight tags").Default("cf_").OverrideDefaultFromEnvar("INSIGHT_FIELD_PREFIX").String()
-	logInsightAgentID     = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("1").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
+	logInsightAgentID     = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("5").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
 )
 
 var (

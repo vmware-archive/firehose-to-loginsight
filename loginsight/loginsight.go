@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 )
@@ -36,6 +37,14 @@ func (l *LogInsight) Connect() bool {
 	return true
 }
 
+func (l *LogInsight) CreateKey(k string) string {
+	if strings.HasPrefix(k, *l.LogInsightFieldPrefix) {
+		return k
+	} else {
+		return *l.LogInsightFieldPrefix + k
+	}
+}
+
 func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) {
 	message := Message{
 		Text: msg,
@@ -44,7 +53,7 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 		if k == "timestamp" {
 			message.Timestamp = v.(int64)
 		} else {
-			message.Fields = append(message.Fields, Field{Name: *l.LogInsightFieldPrefix + k, Content: fmt.Sprint(v)})
+			message.Fields = append(message.Fields, Field{Name: l.CreateKey(k), Content: fmt.Sprint(v)})
 		}
 	}
 	l.Messages.Messages = append(l.Messages.Messages, message)
