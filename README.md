@@ -119,8 +119,7 @@ cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domai
 cf set-env firehose-to-loginsight DOPPLER_ENDPOINT wss://doppler.[your cf system domain]:443
 cf set-env firehose-to-loginsight INSIGHT_SERVER [Your Log Insight IP]
 cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port]
-cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 50]
-cf set-env firehose-to-loginsight INSIGHT_FIELD_PREFIX [Prefix for fields, default 'cf_']
+cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 5]
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS true
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS_TIME "10s"
 cf set-env firehose-to-loginsight SKIP_SSL_VALIDATION true
