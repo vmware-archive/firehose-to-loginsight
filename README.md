@@ -118,7 +118,7 @@ cf push firehose-to-loginsight -c ./firehose-to-loginsight -b binary_buildpack -
 cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domain]
 cf set-env firehose-to-loginsight DOPPLER_ENDPOINT wss://doppler.[your cf system domain]:443
 cf set-env firehose-to-loginsight INSIGHT_SERVER [Your Log Insight IP]
-cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port]
+cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port, defaults to 9543]
 cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 5]
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS true
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS_TIME "10s"
