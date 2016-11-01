@@ -13,31 +13,32 @@ import (
 )
 
 type LogInsight struct {
-	LogInsightServer         *string
-	LogInsightPort           *int
 	LogInsightBatchSize      *int
 	LogInsightReservedFields []string
-	LogInsightAgentID        *string
 	Messages                 Messages
-	LogInsightClient         *http.Client
+	url                      *string
+	client                   *http.Client
 }
 
 //NewLogging - Creates new instance of LogInsight that implments logging.Logging interface
 func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightReservedFields *string, logInsightAgentID *string) logging.Logging {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+
+	baseClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
 	}
 
-	baseClient := &http.Client{Transport: tr}
+	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", *logInsightServer, *logInsightPort, *logInsightAgentID)
 
 	return &LogInsight{
-		LogInsightServer:         logInsightServer,
-		LogInsightPort:           logInsightPort,
 		LogInsightBatchSize:      logInsightBatchSize,
 		LogInsightReservedFields: strings.Split(*logInsightReservedFields, ","),
-		LogInsightAgentID:        logInsightAgentID,
 		Messages:                 Messages{},
-		LogInsightClient:         baseClient,
+		client:                   baseClient,
+		url:                      &url,
 	}
 }
 
@@ -81,17 +82,7 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 		encoder := json.NewEncoder(jsonBuffer)
 
 		if err := encoder.Encode(l.Messages); err == nil {
-			url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", *l.LogInsightServer, *l.LogInsightPort, *l.LogInsightAgentID)
-
-			var req *http.Request
-			if req, err = http.NewRequest("POST", url, jsonBuffer); err == nil {
-				defer req.Body.Close()
-
-				req.Header.Add("Content-Type", "application/json")
-				go l.handleLogInsightResponse(req, jsonBuffer)
-			} else {
-				logging.LogError("Error creating request", err)
-			}
+			l.sendToLogInsight(jsonBuffer)
 		} else {
 			logging.LogError("Error marshalling", err)
 		}
@@ -104,25 +95,20 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 	l.Messages.Messages = nil
 }
 
-func (l *LogInsight) handleLogInsightResponse(req *http.Request, jsonBuffer *bytes.Buffer) func() {
-	return func() {
-		if resp, err := l.LogInsightClient.Do(req); err == nil {
-			defer resp.Body.Close()
+func (l *LogInsight) sendToLogInsight(jsonBuffer *bytes.Buffer) {
+	if req, err := http.NewRequest("POST", *l.url, jsonBuffer); err == nil {
+		req.Header.Add("Content-Type", "application/json")
 
-			if resp.StatusCode != 200 {
-				body, _ := ioutil.ReadAll(resp.Body)
-				logging.LogError(fmt.Sprintf("Error posting data to log insight with status %d and payload %s", resp.StatusCode, jsonBuffer.String()), string(body))
-				fmt.Println("response Status:", resp.Status)
-				fmt.Println("response Headers:", resp.Header)
-				fmt.Println("response Body:", string(body))
-			} else {
-				l.Messages = Messages{}
-			}
+		if resp, err := l.client.Do(req); err == nil {
+			defer resp.Body.Close()
+			_, _ = ioutil.ReadAll(resp.Body)
 		} else {
 			logging.LogError("Error sending data", err)
 		}
-		jsonBuffer = nil
+	} else {
+		logging.LogError("Error creating request", err)
 	}
+	jsonBuffer = nil
 }
 
 type Messages struct {
