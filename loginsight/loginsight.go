@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
@@ -18,10 +19,11 @@ type LogInsight struct {
 	Messages                 Messages
 	url                      *string
 	client                   *http.Client
+	hasJsonLogMsg            bool
 }
 
 //NewLogging - Creates new instance of LogInsight that implments logging.Logging interface
-func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightReservedFields *string, logInsightAgentID *string) logging.Logging {
+func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightReservedFields *string, logInsightAgentID *string, logInsightHasJsonLogMsg *string) logging.Logging {
 
 	baseClient := &http.Client{
 		Transport: &http.Transport{
@@ -29,6 +31,11 @@ func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *i
 				InsecureSkipVerify: true,
 			},
 		},
+	}
+
+	b, err := strconv.ParseBool(*logInsightHasJsonLogMsg)
+	if err != nil {
+		b = false
 	}
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", *logInsightServer, *logInsightPort, *logInsightAgentID)
@@ -39,6 +46,7 @@ func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *i
 		Messages:                 Messages{},
 		client:                   baseClient,
 		url:                      &url,
+		hasJsonLogMsg:            b,
 	}
 }
 
@@ -64,15 +72,35 @@ func contains(s []string, e string) bool {
 }
 
 func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) {
+
 	message := Message{
 		Text: msg,
 	}
+
 	for k, v := range eventFields {
 		if k == "timestamp" {
 			message.Timestamp = v.(int64)
 		} else {
 			message.Fields = append(message.Fields, Field{Name: l.CreateKey(k), Content: fmt.Sprint(v)})
 		}
+	}
+
+	if l.hasJsonLogMsg {
+
+		var f interface{}
+		msgbytes := []byte(msg)
+		err := json.Unmarshal(msgbytes, &f)
+		if err == nil {
+
+			for k, v := range f.(map[string]interface{}) {
+				message.Fields = append(message.Fields, Field{Name: l.CreateKey(k), Content: fmt.Sprint(v)})
+			}
+
+		}
+
+		msgbytes = nil
+		f = nil
+
 	}
 
 	l.Messages.Messages = append(l.Messages.Messages, message)
