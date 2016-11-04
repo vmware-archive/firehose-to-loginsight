@@ -7,29 +7,46 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 )
 
 type LogInsight struct {
-	LogInsightServer         *string
-	LogInsightPort           *int
 	LogInsightBatchSize      *int
 	LogInsightReservedFields []string
-	LogInsightAgentID        *string
 	Messages                 Messages
+	url                      *string
+	client                   *http.Client
+	hasJsonLogMsg            bool
 }
 
 //NewLogging - Creates new instance of LogInsight that implments logging.Logging interface
-func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightReservedFields *string, logInsightAgentID *string) logging.Logging {
+func NewLogging(logInsightServer *string, logInsightPort, logInsightBatchSize *int, logInsightReservedFields *string, logInsightAgentID *string, logInsightHasJsonLogMsg *string) logging.Logging {
+
+	baseClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	b, err := strconv.ParseBool(*logInsightHasJsonLogMsg)
+	if err != nil {
+		b = false
+	}
+
+	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", *logInsightServer, *logInsightPort, *logInsightAgentID)
+
 	return &LogInsight{
-		LogInsightServer:         logInsightServer,
-		LogInsightPort:           logInsightPort,
 		LogInsightBatchSize:      logInsightBatchSize,
 		LogInsightReservedFields: strings.Split(*logInsightReservedFields, ","),
-		LogInsightAgentID:        logInsightAgentID,
 		Messages:                 Messages{},
+		client:                   baseClient,
+		url:                      &url,
+		hasJsonLogMsg:            b,
 	}
 }
 
@@ -53,10 +70,13 @@ func contains(s []string, e string) bool {
 	}
 	return false
 }
+
 func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) {
+
 	message := Message{
 		Text: msg,
 	}
+
 	for k, v := range eventFields {
 		if k == "timestamp" {
 			message.Timestamp = v.(int64)
@@ -64,40 +84,59 @@ func (l *LogInsight) ShipEvents(eventFields map[string]interface{}, msg string) 
 			message.Fields = append(message.Fields, Field{Name: l.CreateKey(k), Content: fmt.Sprint(v)})
 		}
 	}
-	l.Messages.Messages = append(l.Messages.Messages, message)
 
+	if l.hasJsonLogMsg {
+
+		var f interface{}
+		msgbytes := []byte(msg)
+		err := json.Unmarshal(msgbytes, &f)
+		if err == nil {
+
+			for k, v := range f.(map[string]interface{}) {
+				message.Fields = append(message.Fields, Field{Name: l.CreateKey(k), Content: fmt.Sprint(v)})
+			}
+
+		}
+
+		msgbytes = nil
+		f = nil
+
+	}
+
+	l.Messages.Messages = append(l.Messages.Messages, message)
 	if len(l.Messages.Messages) >= *l.LogInsightBatchSize {
-		if jsonstr, err := json.Marshal(l.Messages); err == nil {
-			url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", *l.LogInsightServer, *l.LogInsightPort, *l.LogInsightAgentID)
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-			var req *http.Request
-			var resp *http.Response
-			if req, err = http.NewRequest("POST", url, bytes.NewBuffer(jsonstr)); err == nil {
-				req.Header.Add("Content-Type", "application/json")
-				client := &http.Client{Transport: tr}
-				if resp, err = client.Do(req); err == nil {
-					defer resp.Body.Close()
-					if resp.StatusCode != 200 {
-						body, _ := ioutil.ReadAll(resp.Body)
-						logging.LogError(fmt.Sprintf("Error posting data to log insight with status %d and payload %s", resp.StatusCode, string(jsonstr)), string(body))
-						fmt.Println("response Status:", resp.Status)
-						fmt.Println("response Headers:", resp.Header)
-						fmt.Println("response Body:", string(body))
-					} else {
-						l.Messages = Messages{}
-					}
-				} else {
-					logging.LogError("Error sending data", err)
-				}
-			} else {
-				logging.LogError("Error creating request", err)
-			}
+
+		jsonBuffer := new(bytes.Buffer)
+		encoder := json.NewEncoder(jsonBuffer)
+
+		if err := encoder.Encode(l.Messages); err == nil {
+			l.sendToLogInsight(jsonBuffer)
 		} else {
 			logging.LogError("Error marshalling", err)
 		}
+
+		jsonBuffer = nil
+		encoder = nil
 	}
+
+	message.Fields = nil
+	l.Messages.Messages = nil
+}
+
+func (l *LogInsight) sendToLogInsight(jsonBuffer *bytes.Buffer) {
+	if req, err := http.NewRequest("POST", *l.url, jsonBuffer); err == nil {
+		req.Header.Add("Content-Type", "application/json")
+
+		if resp, err := l.client.Do(req); err == nil {
+			defer resp.Body.Close()
+			_, _ = ioutil.ReadAll(resp.Body)
+		} else {
+			logging.LogError("Error sending data", err)
+		}
+	} else {
+		logging.LogError("Error creating request", err)
+	}
+	jsonBuffer = nil
 }
 
 type Messages struct {

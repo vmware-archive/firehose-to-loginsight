@@ -34,6 +34,7 @@ var (
 	logInsightBatchSize      = kingpin.Flag("insight-batch-size", "log insight batch size").Default("1").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
 	logInsightReservedFields = kingpin.Flag("insight-reserved-fields", "comma delimited list of fields that are reserved").Default("event_type").OverrideDefaultFromEnvar("INSIGHT_RESERVED_FIELDS").String()
 	logInsightAgentID        = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("5").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
+	logInsightHasJsonLogMsg  = kingpin.Flag("insight-has-json-log-msg", "app log message can be json").Default("false").OverrideDefaultFromEnvar("INSIGHT_HAS_JSON_LOG_MSG").String()
 )
 
 var (
@@ -46,7 +47,7 @@ func main() {
 
 	var loggingClient logging.Logging
 	//Setup Logging
-	loggingClient = loginsight.NewLogging(logInsightServer, logInsightServerPort, logInsightBatchSize, logInsightReservedFields, logInsightAgentID)
+	loggingClient = loginsight.NewLogging(logInsightServer, logInsightServerPort, logInsightBatchSize, logInsightReservedFields, logInsightAgentID, logInsightHasJsonLogMsg)
 	logging.LogStd(fmt.Sprintf("Starting firehose-to-loginsight %s ", VERSION), true)
 
 	c := cfclient.Config{
