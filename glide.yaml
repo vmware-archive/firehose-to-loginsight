@@ -1,5 +1,13 @@
 package: github.com/pivotalservices/firehose-to-loginsight
 import:
 - package: github.com/cloudfoundry-community/firehose-to-syslog
+  version: master
 - package: gopkg.in/alecthomas/kingpin.v2
 - package: golang.org/x/oauth2
+- package: github.com/parnurzeal/gorequest
+  version: v0.2.14
+testImport:
+- package: github.com/onsi/ginkgo
+  version: master
+- package: github.com/onsi/gomega
+  version: master

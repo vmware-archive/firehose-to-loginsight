@@ -47,7 +47,7 @@ func main() {
 
 	var loggingClient logging.Logging
 	//Setup Logging
-	loggingClient = loginsight.NewLogging(logInsightServer, logInsightServerPort, logInsightBatchSize, logInsightReservedFields, logInsightAgentID, logInsightHasJsonLogMsg)
+	loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJsonLogMsg)
 	logging.LogStd(fmt.Sprintf("Starting firehose-to-loginsight %s ", VERSION), true)
 
 	c := cfclient.Config{
@@ -56,8 +56,12 @@ func main() {
 		Password:          *password,
 		SkipSslValidation: *skipSSLValidation,
 	}
-	cloudFoundryClient := cfclient.NewClient(&c)
+	cloudFoundryClient, err := cfclient.NewClient(&c)
+	if err != nil {
+		log.Fatal("Error setting up event routing: ", err)
+		os.Exit(1)
 
+	}
 	if len(*dopplerEndpoint) > 0 {
 		cloudFoundryClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
 	}
@@ -72,7 +76,7 @@ func main() {
 	}
 	//Creating Events
 	events := eventRouting.NewEventRouting(cachingClient, loggingClient)
-	err := events.SetupEventRouting(*wantedEvents)
+	err = events.SetupEventRouting(*wantedEvents)
 	if err != nil {
 		log.Fatal("Error setting up event routing: ", err)
 		os.Exit(1)

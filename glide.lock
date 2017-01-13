@@ -1,5 +1,5 @@
-hash: cc34a499413011d39fe211844c5c26b9171b1b1f2e7d759e6e2b20c00944344a
-updated: 2016-10-18T12:39:51.834030708-05:00
+hash: a9d6fb434bcd86466ef7f4d1e5e1d0398cf2301cb30a7fe7cda96a920dd92424
+updated: 2017-01-13T08:18:49.455925718-07:00
 imports:
 - name: github.com/alecthomas/template
   version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
@@ -10,17 +10,17 @@ imports:
 - name: github.com/boltdb/bolt
   version: 4d30731e9122988d2012a9574c43f80f054a0d3b
 - name: github.com/cloudfoundry-community/firehose-to-syslog
-  version: 2f0289cc7945c4cb44a27c4514c5d5cdcbee790a
+  version: d805f1612c179250a66cdaee62d4aa7101446da9
   subpackages:
   - caching
   - eventRouting
-  - firehoseclient
-  - logging
   - events
   - extrafields
+  - firehoseclient
+  - logging
   - utils
 - name: github.com/cloudfoundry-community/go-cfclient
-  version: 113da20ed641ca3d56d09feec2ee37bda591f820
+  version: 281b53c3fa2872518cabf3293a30a7cacd0fcbcb
 - name: github.com/cloudfoundry/noaa
   version: 0ca0d30d65c7422750132450593d402428dd2273
   subpackages:
@@ -38,17 +38,21 @@ imports:
   - proto
   - protoc-gen-gogo/descriptor
 - name: github.com/golang/protobuf
-  version: 98fa357170587e470c5f27d3c3ea0947b71eb455
+  version: 2c1988e8c18d14b142c0b472624f71647cf39adb
   subpackages:
   - proto
 - name: github.com/gorilla/websocket
   version: a69d25be2fe2923a97c2af6849b2f52426f68fc0
 - name: github.com/mailru/easyjson
-  version: 3d7eb5818bd515e07588ded25d0d501516a0309d
+  version: 159cdb893c982e3d1bc6450322fedd514f9c9de3
   subpackages:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/moul/http2curl
+  version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
+- name: github.com/parnurzeal/gorequest
+  version: 2aea80ce763523ecc6452e61c3727ae9595a5809
 - name: github.com/Sirupsen/logrus
   version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
   subpackages:
@@ -57,24 +61,60 @@ imports:
   version: 7dbad50ab5b31073856416cdcfeb2796d682f844
   subpackages:
   - context
+  - publicsuffix
 - name: golang.org/x/oauth2
-  version: 2baa8a1b9338cf13d9eeb27696d761155fa480be
+  version: da3ce8d62a7f77aadfda06cb82bd604d6469c645
   subpackages:
+  - clientcredentials
   - internal
 - name: golang.org/x/sys
   version: 9d4e42a20653790449273b3c85e67d6d8bae6e2e
   subpackages:
   - unix
 - name: google.golang.org/appengine
-  version: 5b8c3b819891014a2d12354528f7d046dd53c89e
+  version: e951d3868b377b14f4e60efa3a301532ee3c1ebf
   subpackages:
-  - urlfetch
   - internal
-  - internal/urlfetch
   - internal/base
   - internal/datastore
   - internal/log
   - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
 - name: gopkg.in/alecthomas/kingpin.v2
   version: e9044be3ab2a8e11d4e1f418d12f0790d57e8d70
-devImports: []
+testImports:
+- name: github.com/onsi/ginkgo
+  version: 43e2af1f01ace55adbb6d7d0f30416476db1baae
+  subpackages:
+  - config
+  - internal/codelocation
+  - internal/containernode
+  - internal/failer
+  - internal/leafnodes
+  - internal/remote
+  - internal/spec
+  - internal/specrunner
+  - internal/suite
+  - internal/testingtproxy
+  - internal/writer
+  - reporters
+  - reporters/stenographer
+  - types
+- name: github.com/onsi/gomega
+  version: c90bd38f8da6e92f8b114953db2f0ad7361fb4b4
+  subpackages:
+  - format
+  - ghttp
+  - internal/assertion
+  - internal/asyncassertion
+  - internal/oraclematcher
+  - internal/testingtsupport
+  - matchers
+  - matchers/support/goraph/bipartitegraph
+  - matchers/support/goraph/edge
+  - matchers/support/goraph/node
+  - matchers/support/goraph/util
+  - types
+- name: gopkg.in/yaml.v2
+  version: e4d366fc3c7938e2958e662b4258c7a89e1f0e3e
