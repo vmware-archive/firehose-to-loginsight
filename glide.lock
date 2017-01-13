@@ -1,5 +1,5 @@
-hash: 600dff916fcbe6f4686aa7f237fc1f7b824c851517b780c9c00555fd01cb4c1b
-updated: 2017-01-13T08:55:58.653702663-07:00
+hash: 5919687226bcfc78b8531a82f335e1bb0c05771891893fc8ae8fefd49fc18077
+updated: 2017-01-13T09:06:12.033824587-07:00
 imports:
 - name: github.com/alecthomas/template
   version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
@@ -52,7 +52,7 @@ imports:
 - name: github.com/moul/http2curl
   version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
 - name: github.com/op/go-logging
-  version: b2cb9fa56473e98db8caba80237377e83fe44db5
+  version: 970db520ece77730c7e4724c61121037378659d9
 - name: github.com/parnurzeal/gorequest
   version: 2aea80ce763523ecc6452e61c3727ae9595a5809
 - name: github.com/Sirupsen/logrus
