@@ -1,5 +1,5 @@
-hash: a9d6fb434bcd86466ef7f4d1e5e1d0398cf2301cb30a7fe7cda96a920dd92424
-updated: 2017-01-13T08:18:49.455925718-07:00
+hash: 600dff916fcbe6f4686aa7f237fc1f7b824c851517b780c9c00555fd01cb4c1b
+updated: 2017-01-13T08:55:58.653702663-07:00
 imports:
 - name: github.com/alecthomas/template
   version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
@@ -51,12 +51,16 @@ imports:
   - jwriter
 - name: github.com/moul/http2curl
   version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
+- name: github.com/op/go-logging
+  version: b2cb9fa56473e98db8caba80237377e83fe44db5
 - name: github.com/parnurzeal/gorequest
   version: 2aea80ce763523ecc6452e61c3727ae9595a5809
 - name: github.com/Sirupsen/logrus
   version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
   subpackages:
   - hooks/syslog
+- name: github.com/xchapter7x/lo
+  version: e33b245fc7a8186582208abc2458c2691bff681c
 - name: golang.org/x/net
   version: 7dbad50ab5b31073856416cdcfeb2796d682f844
   subpackages:
