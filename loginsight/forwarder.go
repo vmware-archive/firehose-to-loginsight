@@ -10,7 +10,7 @@ import (
 
 	"github.com/parnurzeal/gorequest"
 
-	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
+	"github.com/xchapter7x/lo"
 )
 
 type Forwarder struct {
@@ -29,7 +29,7 @@ func NewForwarder(logInsightServer string, logInsightPort, logInsightBatchSize i
 	}
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
-
+	lo.G.Info("Using", url, "for log insight")
 	return &Forwarder{
 		LogInsightBatchSize:      logInsightBatchSize,
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
@@ -84,6 +84,8 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 			for k, v := range obj.(map[string]interface{}) {
 				message.Fields = append(message.Fields, Field{Name: f.CreateKey(k), Content: fmt.Sprint(v)})
 			}
+		} else {
+			lo.G.Error("Error unmarshalling", err)
 		}
 
 		msgbytes = nil
@@ -96,7 +98,7 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		if err == nil {
 			f.Post(*f.url, string(payload))
 		} else {
-			logging.LogError("Error marshalling", err)
+			lo.G.Error("Error marshalling", err)
 		}
 		message.Fields = nil
 		f.Messages.Messages = nil
@@ -111,10 +113,10 @@ func (l *Forwarder) Post(url, payload string) {
 	post.Send(payload)
 	res, body, errs := post.End()
 	if len(errs) > 0 {
-		logging.LogError("Error Posting data", errs[0])
+		lo.G.Error("Error Posting data", errs[0])
 	}
 	if res.StatusCode != http.StatusOK {
-		logging.LogError("non 200 status code", fmt.Errorf("Status %d, body %s", res.StatusCode, body))
+		lo.G.Error("non 200 status code", fmt.Errorf("Status %d, body %s", res.StatusCode, body))
 	}
 }
 
