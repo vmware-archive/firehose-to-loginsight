@@ -50,6 +50,14 @@ func main() {
 	loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg)
 	lo.G.Infof("Starting firehose-to-loginsight %s ", VERSION)
 
+	if len(*logInsightServer) <= 0 {
+		lo.G.Fatal("Must set insight-server property")
+		os.Exit(1)
+	}
+	if len(*apiEndpoint) <= 0 {
+		lo.G.Fatal("Must set api-endpoint property")
+		os.Exit(1)
+	}
 	c := cfclient.Config{
 		ApiAddress:        *apiEndpoint,
 		Username:          *user,
@@ -65,6 +73,9 @@ func main() {
 	if len(*dopplerEndpoint) > 0 {
 		cloudFoundryClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
 	}
+
+	lo.G.Infof("Using %s:%d as log insight endpoint", *logInsightServer, *logInsightServerPort)
+	lo.G.Infof("Using %s as api endpoint", *apiEndpoint)
 	lo.G.Infof("Using %s as doppler endpoint", cloudFoundryClient.Endpoint.DopplerEndpoint)
 
 	//Creating Caching
