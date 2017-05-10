@@ -1,11 +1,8 @@
 #Disclaimer
 
-Since v0.0.10 we stop supporting username and password for authentification.
+Since v0.0.10 we stop supporting username and password for authentication.
 
 Please use ClientId and ClientSecret.
-
-
-
 
 # firehose-to-loginsight
 Firehose nozzle to pull events and send to LogInsight ingestion API inspired and leverages firehose-to-sylog
