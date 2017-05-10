@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/eventRouting"
 	"github.com/cloudfoundry-community/firehose-to-syslog/firehoseclient"
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
+	"github.com/cloudfoundry-community/firehose-to-syslog/uaatokenrefresher"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pivotalservices/firehose-to-loginsight/loginsight"
-	"github.com/xchapter7x/lo"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -19,8 +20,8 @@ var (
 	apiEndpoint              = kingpin.Flag("api-endpoint", "Api endpoint address. For bosh-lite installation of CF: https://api.10.244.0.34.xip.io").OverrideDefaultFromEnvar("API_ENDPOINT").Required().String()
 	dopplerEndpoint          = kingpin.Flag("doppler-endpoint", "Overwrite default doppler endpoint return by /v2/info").OverrideDefaultFromEnvar("DOPPLER_ENDPOINT").String()
 	subscriptionID           = kingpin.Flag("subscription-id", "Id for the subscription.").Default("firehose-to-loginsight").OverrideDefaultFromEnvar("FIREHOSE_SUBSCRIPTION_ID").String()
-	user                     = kingpin.Flag("user", "Admin user.").Default("admin").OverrideDefaultFromEnvar("FIREHOSE_USER").String()
-	password                 = kingpin.Flag("password", "Admin password.").Default("admin").OverrideDefaultFromEnvar("FIREHOSE_PASSWORD").String()
+	clientID                 = kingpin.Flag("client-id", "Client ID.").Default("admin").OverrideDefaultFromEnvar("FIREHOSE_CLIENT_ID").String()
+	clientSecret             = kingpin.Flag("client-secret", "Client Secret.").Default("admin-client-secret").OverrideDefaultFromEnvar("FIREHOSE_CLIENT_SECRET").String()
 	skipSSLValidation        = kingpin.Flag("skip-ssl-validation", "Please don't").Default("false").OverrideDefaultFromEnvar("SKIP_SSL_VALIDATION").Bool()
 	keepAlive                = kingpin.Flag("fh-keep-alive", "Keep Alive duration for the firehose consumer").Default("25s").OverrideDefaultFromEnvar("FH_KEEP_ALIVE").Duration()
 	logEventTotals           = kingpin.Flag("log-event-totals", "Logs the counters for all selected events since nozzle was last started.").Default("false").OverrideDefaultFromEnvar("LOG_EVENT_TOTALS").Bool()
@@ -35,6 +36,7 @@ var (
 	logInsightReservedFields = kingpin.Flag("insight-reserved-fields", "comma delimited list of fields that are reserved").Default("event_type").OverrideDefaultFromEnvar("INSIGHT_RESERVED_FIELDS").String()
 	logInsightAgentID        = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("5").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
 	logInsightHasJSONLogMsg  = kingpin.Flag("insight-has-json-log-msg", "app log message can be json").Default("false").OverrideDefaultFromEnvar("INSIGHT_HAS_JSON_LOG_MSG").String()
+	noop                     = kingpin.Flag("noop", "if it should avoid sending to log-insight").Default("false").OverrideDefaultFromEnvar("INSIGHT_NOOP").String()
 )
 
 var (
@@ -47,41 +49,44 @@ func main() {
 
 	var loggingClient logging.Logging
 	//Setup Logging
-	loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg)
-	lo.G.Infof("Starting firehose-to-loginsight %s ", VERSION)
-
-	if len(*logInsightServer) <= 0 {
-		lo.G.Fatal("Must set insight-server property")
-		os.Exit(1)
-	}
+	logging.LogStd(fmt.Sprintf("Starting firehose-to-loginsight %s ", VERSION), true)
 	if len(*apiEndpoint) <= 0 {
-		lo.G.Fatal("Must set api-endpoint property")
+		log.Fatal("Must set api-endpoint property")
 		os.Exit(1)
 	}
+	if *noop == "false" {
+		if len(*logInsightServer) <= 0 {
+			log.Fatal("Must set insight-server property")
+			os.Exit(1)
+		}
+		loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg)
+	} else {
+		loggingClient = loginsight.NewNoopForwarder()
+	}
+
 	c := cfclient.Config{
 		ApiAddress:        *apiEndpoint,
-		Username:          *user,
-		Password:          *password,
+		ClientID:          *clientID,
+		ClientSecret:      *clientSecret,
 		SkipSslValidation: *skipSSLValidation,
+		UserAgent:         "firehose-to-loginsight/" + VERSION,
 	}
-	cloudFoundryClient, err := cfclient.NewClient(&c)
+	cfClient, err := cfclient.NewClient(&c)
 	if err != nil {
-		lo.G.Fatal("Error setting up event routing: ", err)
+		log.Fatal("New Client: ", err)
 		os.Exit(1)
 
 	}
 	if len(*dopplerEndpoint) > 0 {
-		cloudFoundryClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
+		cfClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
 	}
-
-	lo.G.Infof("Using %s:%d as log insight endpoint", *logInsightServer, *logInsightServerPort)
-	lo.G.Infof("Using %s as api endpoint", *apiEndpoint)
-	lo.G.Infof("Using %s as doppler endpoint", cloudFoundryClient.Endpoint.DopplerEndpoint)
+	fmt.Println(cfClient.Endpoint.DopplerEndpoint)
+	logging.LogStd(fmt.Sprintf("Using %s as doppler endpoint", cfClient.Endpoint.DopplerEndpoint), true)
 
 	//Creating Caching
 	var cachingClient caching.Caching
 	if caching.IsNeeded(*wantedEvents) {
-		cachingClient = caching.NewCachingBolt(cloudFoundryClient, *boltDatabasePath)
+		cachingClient = caching.NewCachingBolt(cfClient, *boltDatabasePath)
 	} else {
 		cachingClient = caching.NewCachingEmpty()
 	}
@@ -89,7 +94,7 @@ func main() {
 	events := eventRouting.NewEventRouting(cachingClient, loggingClient)
 	err = events.SetupEventRouting(*wantedEvents)
 	if err != nil {
-		lo.G.Fatal("Error setting up event routing: ", err)
+		log.Fatal("Error setting up event routing: ", err)
 		os.Exit(1)
 
 	}
@@ -99,22 +104,33 @@ func main() {
 
 	//Enable LogsTotalevent
 	if *logEventTotals {
-		lo.G.Info("Logging total events % is enabled")
+		logging.LogStd("Logging total events", true)
 		events.LogEventTotals(*logEventTotalsTime)
 	}
 
 	// Parse extra fields from cmd call
 	cachingClient.CreateBucket()
 	//Let's Update the database the first time
-	lo.G.Info("Start filling app/space/org cache.")
+	logging.LogStd("Start filling app/space/org cache.", true)
 	apps := cachingClient.GetAllApp()
-	lo.G.Infof("Done filling cache! Found [%d] Apps", len(apps))
+	logging.LogStd(fmt.Sprintf("Done filling cache! Found [%d] Apps", len(apps)), true)
 
 	//Let's start the goRoutine
 	cachingClient.PerformPoollingCaching(*tickerTime)
 
+	uaaRefresher, err := uaatokenrefresher.NewUAATokenRefresher(
+		cfClient.Endpoint.AuthEndpoint,
+		*clientID,
+		*clientSecret,
+		*skipSSLValidation,
+	)
+
+	if err != nil {
+		logging.LogError(fmt.Sprint("Failed connecting to Get token from UAA..", err), "")
+	}
+
 	firehoseConfig := &firehoseclient.FirehoseConfig{
-		TrafficControllerURL:   *dopplerEndpoint,
+		TrafficControllerURL:   cfClient.Endpoint.DopplerEndpoint,
 		InsecureSSLSkipVerify:  *skipSSLValidation,
 		IdleTimeoutSeconds:     *keepAlive,
 		FirehoseSubscriptionID: *subscriptionID,
@@ -122,18 +138,18 @@ func main() {
 
 	if loggingClient.Connect() || *debug {
 
-		lo.G.Info("Connecting to Firehose...")
-		firehoseClient := firehoseclient.NewFirehoseNozzle(cloudFoundryClient, events, firehoseConfig)
+		logging.LogStd("Connecting to Firehose...", true)
+		firehoseClient := firehoseclient.NewFirehoseNozzle(uaaRefresher, events, firehoseConfig)
 		err = firehoseClient.Start()
 		if err != nil {
-			lo.G.Error("Failed connecting to Firehose...Please check settings and try again!")
+			logging.LogError("Failed connecting to Firehose...Please check settings and try again!", "")
 
 		} else {
-			lo.G.Info("Firehose Subscription Succesfull! Routing events...")
+			logging.LogStd("Firehose Subscription Succesfull! Routing events...", true)
 		}
 
 	} else {
-		lo.G.Error("Failed connecting Log Insight...Please check settings and try again!")
+		logging.LogError("Failed connecting Log Insight...Please check settings and try again!", "")
 	}
 
 	defer cachingClient.Close()

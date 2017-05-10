@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
-
 	"github.com/pivotalservices/firehose-to-loginsight/loginsight"
 )
 
@@ -40,7 +40,7 @@ var _ = Describe("Logger", func() {
 	Describe("ShipEvents", func() {
 		var (
 			server *Server
-			logger *loginsight.Forwarder
+			logger logging.Logging
 		)
 
 		BeforeEach(func() {

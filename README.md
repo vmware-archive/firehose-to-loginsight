@@ -1,3 +1,12 @@
+#Disclaimer
+
+Since v0.0.10 we stop supporting username and password for authentification.
+
+Please use ClientId and ClientSecret.
+
+
+
+
 # firehose-to-loginsight
 Firehose nozzle to pull events and send to LogInsight ingestion API inspired and leverages firehose-to-sylog
 
@@ -22,8 +31,8 @@ Flags:
   --insight-agent-id=INSIGHT_AGENT_ID
                                  agent id for log insight. Defaults to 1
   --subscription-id="firehose"   Id for the subscription.
-  --user="admin"                 Admin user.
-  --password="admin"             Admin password.
+  --client-id="admin"                 client id.
+  --client-secret="admin"             client secret.
   --skip-ssl-validation          Please don't
   --fh-keep-alive=25s            Keep Alive duration for the firehose consumer
   --log-event-totals             Logs the counters for all selected events since nozzle was last started.
@@ -90,9 +99,11 @@ We have 3 caching strategies:
 ```bash
 uaac target https://uaa.[your cf system domain] --skip-ssl-validation
 uaac token client get admin -s [your admin-secret]
-cf create-user [firehose user] [firehose password]
-uaac member add cloud_controller.admin [your firehose user]
-uaac member add doppler.firehose [your firehose user]
+uaac client add firehose-to-loginsight \
+      --name firehose-to-loginsight \
+      --secret [your_client_secret] \
+      --authorized_grant_types client_credentials,refresh_token \
+      --authorities doppler.firehose,cloud_controller.admin
 ```
 
 ## Download the latest release of firehose-to-loginsight from GITHub releases (https://github.com/pivotalservices/firehose-to-loginsight/releases)
@@ -116,7 +127,6 @@ cf push firehose-to-loginsight -c ./firehose-to-loginsight -b binary_buildpack -
 
 ```bash
 cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domain]
-cf set-env firehose-to-loginsight DOPPLER_ENDPOINT wss://doppler.[your cf system domain]:443
 cf set-env firehose-to-loginsight INSIGHT_SERVER [Your Log Insight IP]
 cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port, defaults to 9543]
 cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 5]
@@ -124,8 +134,8 @@ cf set-env firehose-to-loginsight LOG_EVENT_TOTALS true
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS_TIME "10s"
 cf set-env firehose-to-loginsight SKIP_SSL_VALIDATION true
 cf set-env firehose-to-loginsight FIREHOSE_SUBSCRIPTION_ID firehose-to-loginsight
-cf set-env firehose-to-loginsight FIREHOSE_USER  [your doppler.firehose enabled user]
-cf set-env firehose-to-loginsight FIREHOSE_PASSWORD  [your doppler.firehose enabled user password]
+cf set-env firehose-to-loginsight FIREHOSE_CLIENT_ID  [your doppler.firehose enabled user]
+cf set-env firehose-to-loginsight FIREHOSE_CLIENT_SECRET  [your doppler.firehose enabled user password]
 ```
 
 ## Push the app.

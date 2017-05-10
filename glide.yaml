@@ -6,8 +6,8 @@ import:
 - package: golang.org/x/oauth2
 - package: github.com/parnurzeal/gorequest
   version: v0.2.14
-- package: github.com/xchapter7x/lo
-- package: github.com/op/go-logging
+- package: github.com/cloudfoundry-community/go-cfclient
+- package: golang.org/x/net
   version: master
 testImport:
 - package: github.com/onsi/ginkgo

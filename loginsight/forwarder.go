@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 	"github.com/parnurzeal/gorequest"
-
-	"github.com/xchapter7x/lo"
 )
 
 type Forwarder struct {
@@ -22,14 +21,14 @@ type Forwarder struct {
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
-func NewForwarder(logInsightServer string, logInsightPort, logInsightBatchSize int, logInsightReservedFields, logInsightAgentID, logInsightHasJsonLogMsg string) *Forwarder {
+func NewForwarder(logInsightServer string, logInsightPort, logInsightBatchSize int, logInsightReservedFields, logInsightAgentID, logInsightHasJsonLogMsg string) logging.Logging {
 	b, err := strconv.ParseBool(logInsightHasJsonLogMsg)
 	if err != nil {
 		b = false
 	}
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
-	lo.G.Info("Using", url, "for log insight")
+	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
 	return &Forwarder{
 		LogInsightBatchSize:      logInsightBatchSize,
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
@@ -61,7 +60,6 @@ func contains(s []string, e string) bool {
 }
 
 func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
-
 	message := Message{
 		Text: msg,
 	}
@@ -85,7 +83,7 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 				message.Fields = append(message.Fields, Field{Name: f.CreateKey(k), Content: fmt.Sprint(v)})
 			}
 		} else {
-			lo.G.Error("Error unmarshalling", err)
+			logging.LogError("Error unmarshalling", err)
 		}
 
 		msgbytes = nil
@@ -98,7 +96,7 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		if err == nil {
 			f.Post(*f.url, string(payload))
 		} else {
-			lo.G.Error("Error marshalling", err)
+			logging.LogError("Error marshalling", err)
 		}
 		message.Fields = nil
 		f.Messages.Messages = nil
@@ -113,10 +111,10 @@ func (l *Forwarder) Post(url, payload string) {
 	post.Send(payload)
 	res, body, errs := post.End()
 	if len(errs) > 0 {
-		lo.G.Error("Error Posting data", errs[0])
+		logging.LogError("Error Posting data", errs[0])
 	}
 	if res.StatusCode != http.StatusOK {
-		lo.G.Error("non 200 status code", fmt.Errorf("Status %d, body %s", res.StatusCode, body))
+		logging.LogError("non 200 status code", fmt.Errorf("Status %d, body %s", res.StatusCode, body))
 	}
 }
 
