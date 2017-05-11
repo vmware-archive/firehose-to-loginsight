@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	debug                    = kingpin.Flag("debug", "Enable debug mode. This disables forwarding to syslog").Default("false").OverrideDefaultFromEnvar("DEBUG").Bool()
+	debug                    = kingpin.Flag("debug", "Enable debug mode. This enables additional logging").Default("false").OverrideDefaultFromEnvar("DEBUG").Bool()
 	apiEndpoint              = kingpin.Flag("api-endpoint", "Api endpoint address. For bosh-lite installation of CF: https://api.10.244.0.34.xip.io").OverrideDefaultFromEnvar("API_ENDPOINT").Required().String()
 	dopplerEndpoint          = kingpin.Flag("doppler-endpoint", "Overwrite default doppler endpoint return by /v2/info").OverrideDefaultFromEnvar("DOPPLER_ENDPOINT").String()
 	subscriptionID           = kingpin.Flag("subscription-id", "Id for the subscription.").Default("firehose-to-loginsight").OverrideDefaultFromEnvar("FIREHOSE_SUBSCRIPTION_ID").String()
@@ -35,8 +35,8 @@ var (
 	logInsightBatchSize      = kingpin.Flag("insight-batch-size", "log insight batch size").Default("5").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
 	logInsightReservedFields = kingpin.Flag("insight-reserved-fields", "comma delimited list of fields that are reserved").Default("event_type").OverrideDefaultFromEnvar("INSIGHT_RESERVED_FIELDS").String()
 	logInsightAgentID        = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("1").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
-	logInsightHasJSONLogMsg  = kingpin.Flag("insight-has-json-log-msg", "app log message can be json").Default("false").OverrideDefaultFromEnvar("INSIGHT_HAS_JSON_LOG_MSG").String()
-	noop                     = kingpin.Flag("noop", "if it should avoid sending to log-insight").Default("false").OverrideDefaultFromEnvar("INSIGHT_NOOP").String()
+	logInsightHasJSONLogMsg  = kingpin.Flag("insight-has-json-log-msg", "app log message can be json").Default("false").OverrideDefaultFromEnvar("INSIGHT_HAS_JSON_LOG_MSG").Bool()
+	noop                     = kingpin.Flag("noop", "if it should avoid sending to log-insight").Default("false").OverrideDefaultFromEnvar("INSIGHT_NOOP").Bool()
 )
 
 var (
@@ -54,12 +54,12 @@ func main() {
 		log.Fatal("Must set api-endpoint property")
 		os.Exit(1)
 	}
-	if *noop == "false" {
+	if !*noop {
 		if len(*logInsightServer) <= 0 {
 			log.Fatal("Must set insight-server property")
 			os.Exit(1)
 		}
-		loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg)
+		loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg, *debug)
 	} else {
 		loggingClient = loginsight.NewNoopForwarder()
 	}
@@ -142,7 +142,7 @@ func main() {
 		firehoseClient := firehoseclient.NewFirehoseNozzle(uaaRefresher, events, firehoseConfig)
 		err = firehoseClient.Start()
 		if err != nil {
-			logging.LogError("Failed connecting to Firehose...Please check settings and try again!", "")
+			logging.LogError("Failed connecting to Firehose...Please check settings and try again!", err)
 
 		} else {
 			logging.LogStd("Firehose Subscription Succesfull! Routing events...", true)

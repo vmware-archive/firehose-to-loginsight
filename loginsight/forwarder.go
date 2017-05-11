@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
@@ -17,15 +16,12 @@ type Forwarder struct {
 	LogInsightReservedFields []string
 	Messages                 Messages
 	url                      *string
-	hasJsonLogMsg            bool
+	hasJSONLogMsg            bool
+	debug                    bool
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
-func NewForwarder(logInsightServer string, logInsightPort, logInsightBatchSize int, logInsightReservedFields, logInsightAgentID, logInsightHasJsonLogMsg string) logging.Logging {
-	b, err := strconv.ParseBool(logInsightHasJsonLogMsg)
-	if err != nil {
-		b = false
-	}
+func NewForwarder(logInsightServer string, logInsightPort, logInsightBatchSize int, logInsightReservedFields, logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool) logging.Logging {
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
 	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
@@ -34,7 +30,8 @@ func NewForwarder(logInsightServer string, logInsightPort, logInsightBatchSize i
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
 		Messages:                 Messages{},
 		url:                      &url,
-		hasJsonLogMsg:            b,
+		hasJSONLogMsg:            logInsightHasJsonLogMsg,
+		debug:                    debugging,
 	}
 }
 
@@ -60,6 +57,9 @@ func contains(s []string, e string) bool {
 }
 
 func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
+	if f.debug {
+		logging.LogStd("Ship events called", true)
+	}
 	message := Message{
 		Text: msg,
 	}
@@ -72,7 +72,7 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		}
 	}
 
-	if f.hasJsonLogMsg {
+	if f.hasJSONLogMsg {
 
 		var obj interface{}
 		msgbytes := []byte(msg)
@@ -90,8 +90,15 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		f = nil
 
 	}
+
 	f.Messages.Messages = append(f.Messages.Messages, message)
+	if f.debug {
+		logging.LogStd(fmt.Sprintf("Log message size %d", len(f.Messages.Messages)), true)
+	}
 	if len(f.Messages.Messages) >= f.LogInsightBatchSize {
+		if f.debug {
+			logging.LogStd(fmt.Sprintf("Log message size %d sent", len(f.Messages.Messages)), true)
+		}
 		payload, err := json.Marshal(f.Messages)
 		if err == nil {
 			f.Post(*f.url, string(payload))
@@ -103,13 +110,16 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 	}
 }
 
-func (l *Forwarder) Post(url, payload string) {
+func (f *Forwarder) Post(url, payload string) {
 	request := gorequest.New()
 	post := request.Post(url)
 	post.TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	post.Set("Content-Type", "application/json")
 	post.Send(payload)
 	res, body, errs := post.End()
+	if f.debug {
+		logging.LogStd(fmt.Sprintf("Post response code %d", res.StatusCode), true)
+	}
 	if len(errs) > 0 {
 		logging.LogError("Error Posting data", errs[0])
 	}
