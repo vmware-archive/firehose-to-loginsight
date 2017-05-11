@@ -32,7 +32,6 @@ var (
 	extraFields              = kingpin.Flag("extra-fields", "Extra fields you want to annotate your events with, example: '--extra-fields=env:dev,something:other ").Default("").OverrideDefaultFromEnvar("EXTRA_FIELDS").String()
 	logInsightServer         = kingpin.Flag("insight-server", "log insight server address").OverrideDefaultFromEnvar("INSIGHT_SERVER").String()
 	logInsightServerPort     = kingpin.Flag("insight-server-port", "log insight server port").Default("9543").OverrideDefaultFromEnvar("INSIGHT_SERVER_PORT").Int()
-	logInsightBatchSize      = kingpin.Flag("insight-batch-size", "log insight batch size").Default("5").OverrideDefaultFromEnvar("INSIGHT_BATCH_SIZE").Int()
 	logInsightReservedFields = kingpin.Flag("insight-reserved-fields", "comma delimited list of fields that are reserved").Default("event_type").OverrideDefaultFromEnvar("INSIGHT_RESERVED_FIELDS").String()
 	logInsightAgentID        = kingpin.Flag("insight-agent-id", "agent id for log insight").Default("1").OverrideDefaultFromEnvar("INSIGHT_AGENT_ID").String()
 	logInsightHasJSONLogMsg  = kingpin.Flag("insight-has-json-log-msg", "app log message can be json").Default("false").OverrideDefaultFromEnvar("INSIGHT_HAS_JSON_LOG_MSG").Bool()
@@ -59,7 +58,7 @@ func main() {
 			log.Fatal("Must set insight-server property")
 			os.Exit(1)
 		}
-		loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightBatchSize, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg, *debug)
+		loggingClient = loginsight.NewForwarder(*logInsightServer, *logInsightServerPort, *logInsightReservedFields, *logInsightAgentID, *logInsightHasJSONLogMsg, *debug)
 	} else {
 		loggingClient = loginsight.NewNoopForwarder()
 	}

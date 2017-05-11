@@ -21,8 +21,6 @@ Flags:
                                  log insight server address
   --insight-server-port=INSIGHT_SERVER_PORT
                                  log insight server port defaults to 9543
-  --insight-batch-size=INSIGHT_BATCH_SIZE
-                                 log insight batch size defaults to 5
   --insight-reserved-fields=INSIGHT_RESERVED_FIELDS
                                  comma delimited list of reserved fields defaults to event_type
   --insight-agent-id=INSIGHT_AGENT_ID
@@ -126,7 +124,6 @@ cf push firehose-to-loginsight -c ./firehose-to-loginsight -b binary_buildpack -
 cf set-env firehose-to-loginsight API_ENDPOINT https://api.[your cf system domain]
 cf set-env firehose-to-loginsight INSIGHT_SERVER [Your Log Insight IP]
 cf set-env firehose-to-loginsight INSIGHT_SERVER_PORT [Your Log Insight Ingestion Port, defaults to 9543]
-cf set-env firehose-to-loginsight INSIGHT_BATCH_SIZE [Batch size, default 5]
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS true
 cf set-env firehose-to-loginsight LOG_EVENT_TOTALS_TIME "10s"
 cf set-env firehose-to-loginsight SKIP_SSL_VALIDATION true

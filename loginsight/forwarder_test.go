@@ -47,14 +47,14 @@ var _ = Describe("Logger", func() {
 			server = NewTLSServer()
 			url := server.URL()
 			port, _ := strconv.Atoi(url[strings.LastIndex(url, ":")+1:])
-			logger = loginsight.NewForwarder("127.0.0.1", port, 2, "", "1", false, true)
+			logger = loginsight.NewForwarder("127.0.0.1", port, "", "1", false, true)
 		})
 
 		AfterEach(func() {
 			server.Close()
 		})
 		It("successfully send messages", func() {
-			bodyBytes := []byte(`{"messages":[{"fields":[{"content":"test_space","name":"space"}],"text":"hello","timestamp":10},{"fields":[{"content":"test_space","name":"space"}],"text":"hello2","timestamp":10}]}`)
+			bodyBytes := []byte(`{"messages":[{"fields":[{"content":"test_space","name":"space"}],"text":"hello","timestamp":10}]}`)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest("POST", "/api/v1/messages/ingest/1"),
@@ -66,7 +66,6 @@ var _ = Describe("Logger", func() {
 			fields["timestamp"] = int64(10)
 			fields["space"] = "test_space"
 			logger.ShipEvents(fields, "hello")
-			logger.ShipEvents(fields, "hello2")
 		})
 	})
 
