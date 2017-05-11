@@ -53,9 +53,6 @@ func contains(s []string, e string) bool {
 }
 
 func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
-	if f.debug {
-		logging.LogStd("Ship events called", true)
-	}
 	messages := Messages{}
 	message := Message{
 		Text: msg,
@@ -92,9 +89,6 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 	payload, err := json.Marshal(messages)
 	if err == nil {
 		f.Post(*f.url, string(payload))
-		if f.debug {
-			logging.LogStd("Post completed", true)
-		}
 	} else {
 		logging.LogError("Error marshalling", err)
 	}
