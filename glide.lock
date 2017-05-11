@@ -1,5 +1,5 @@
-hash: 27ad34f74b95e9009614eb3e258bb9ef921b027948cc12845b581eb5cf7af069
-updated: 2017-05-10T17:33:37.9970684-05:00
+hash: 9795e6773ddb2fc98c8cb0b0c880c97f97d6128ff6e0b8423bda0404bced80f0
+updated: 2017-05-11T09:45:35.595804693-05:00
 imports:
 - name: github.com/alecthomas/template
   version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
@@ -25,7 +25,7 @@ imports:
 - name: github.com/cloudfoundry-incubator/uaago
   version: 1db9cfd27865007e07ffd5914c0fdf5fb7fc09ba
 - name: github.com/cloudfoundry/noaa
-  version: 0ca0d30d65c7422750132450593d402428dd2273
+  version: 89f0843d0ab59863cc78fc44ca5e4ed8c986677e
   subpackages:
   - consumer
   - consumer/internal
@@ -45,7 +45,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/gorilla/websocket
-  version: a69d25be2fe2923a97c2af6849b2f52426f68fc0
+  version: 17634340a83afe0cab595e40fbc63f6ffa1d8915
 - name: github.com/mailru/easyjson
   version: 159cdb893c982e3d1bc6450322fedd514f9c9de3
   subpackages:
@@ -63,7 +63,7 @@ imports:
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
 - name: golang.org/x/net
-  version: 07b51741c1d6423d4a6abab1c49940ec09cb1aaf
+  version: c9b681d35165f1995d6f3034e61f8761d4b90c99
   subpackages:
   - context
   - html

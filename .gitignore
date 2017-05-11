@@ -5,3 +5,4 @@ my.db
 run.sh
 .wercker
 test
+bin

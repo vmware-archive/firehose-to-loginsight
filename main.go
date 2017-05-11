@@ -80,7 +80,7 @@ func main() {
 	if len(*dopplerEndpoint) > 0 {
 		cfClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
 	}
-	fmt.Println(cfClient.Endpoint.DopplerEndpoint)
+
 	logging.LogStd(fmt.Sprintf("Using %s as doppler endpoint", cfClient.Endpoint.DopplerEndpoint), true)
 
 	//Creating Caching

@@ -7,6 +7,18 @@ import:
 - package: github.com/parnurzeal/gorequest
   version: v0.2.14
 - package: github.com/cloudfoundry-community/go-cfclient
+- package: github.com/cloudfoundry/sonde-go
+  version: master
+  subpackages:
+  - events
+- package: github.com/cloudfoundry/noaa
+  version: master
+  subpackages:
+  - consumer
+  - consumer/internal
+  - errors
+- package: github.com/gorilla/websocket
+  version: master
 - package: golang.org/x/net
   version: master
 testImport:
