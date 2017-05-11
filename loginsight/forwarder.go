@@ -102,6 +102,9 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		payload, err := json.Marshal(f.Messages)
 		if err == nil {
 			f.Post(*f.url, string(payload))
+			if f.debug {
+				logging.LogStd("Post completed", true)
+			}
 		} else {
 			logging.LogError("Error marshalling", err)
 		}
@@ -111,6 +114,9 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 }
 
 func (f *Forwarder) Post(url, payload string) {
+	if f.debug {
+		logging.LogStd("Post being sent", true)
+	}
 	request := gorequest.New()
 	post := request.Post(url)
 	post.TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
