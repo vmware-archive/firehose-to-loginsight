@@ -55,7 +55,7 @@ var _ = Describe("Logger", func() {
 			server.Close()
 		})
 		It("successfully send messages", func() {
-			bodyBytes := []byte(`{"messages":[{"fields":[{"content":"test_space","name":"space"}],"text":"hello","timestamp":10}]}`)
+			bodyBytes := []byte(`{"messages":[{"fields":[{"name":"space","content":"test_space"}],"text":"hello","timestamp":10}]}`)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest("POST", "/api/v1/messages/ingest/1"),

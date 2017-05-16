@@ -4,8 +4,6 @@ import:
   version: master
 - package: gopkg.in/alecthomas/kingpin.v2
 - package: golang.org/x/oauth2
-- package: github.com/parnurzeal/gorequest
-  version: v0.2.14
 - package: github.com/cloudfoundry-community/go-cfclient
 - package: github.com/cloudfoundry/sonde-go
   version: master

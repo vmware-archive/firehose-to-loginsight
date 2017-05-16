@@ -1,5 +1,5 @@
-hash: 9795e6773ddb2fc98c8cb0b0c880c97f97d6128ff6e0b8423bda0404bced80f0
-updated: 2017-05-11T09:45:35.595804693-05:00
+hash: 06695404bfdcc408633d68b10b407ac381f4bc69d560587f3c58a0719a2532e0
+updated: 2017-05-16T16:51:05.705034033-06:00
 imports:
 - name: github.com/alecthomas/template
   version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
@@ -52,10 +52,6 @@ imports:
   - buffer
   - jlexer
   - jwriter
-- name: github.com/moul/http2curl
-  version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
-- name: github.com/parnurzeal/gorequest
-  version: 2aea80ce763523ecc6452e61c3727ae9595a5809
 - name: github.com/RackSec/srslog
   version: a974ba6f7fb527d2ddc73ee9c05d3e2ccc0af0dc
 - name: github.com/shinji62/logrus-syslog-ng
@@ -69,7 +65,6 @@ imports:
   - html
   - html/atom
   - html/charset
-  - publicsuffix
 - name: golang.org/x/oauth2
   version: da3ce8d62a7f77aadfda06cb82bd604d6469c645
   subpackages:

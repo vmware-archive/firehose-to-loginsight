@@ -1,14 +1,16 @@
 package loginsight
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
-	"github.com/parnurzeal/gorequest"
 )
 
 type Forwarder struct {
@@ -16,6 +18,7 @@ type Forwarder struct {
 	url                      *string
 	hasJSONLogMsg            bool
 	debug                    bool
+	client                   *http.Client
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
@@ -23,11 +26,18 @@ func NewForwarder(logInsightServer string, logInsightPort int, logInsightReserve
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
 	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
+	tr := &http.Transport{
+		MaxIdleConns:       10,
+		IdleConnTimeout:    30 * time.Second,
+		DisableCompression: true,
+		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
+	}
 	return &Forwarder{
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
 		url:           &url,
 		hasJSONLogMsg: logInsightHasJsonLogMsg,
 		debug:         debugging,
+		client:        &http.Client{Transport: tr},
 	}
 }
 
@@ -69,52 +79,49 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 
 		if f.hasJSONLogMsg {
 
-			var obj interface{}
+			var obj map[string]interface{}
 			msgbytes := []byte(msg)
 			err := json.Unmarshal(msgbytes, &obj)
 			if err == nil {
-
-				for k, v := range obj.(map[string]interface{}) {
+				for k, v := range obj {
 					message.Fields = append(message.Fields, Field{Name: f.CreateKey(k), Content: fmt.Sprint(v)})
 				}
 			} else {
 				logging.LogError("Error unmarshalling", err)
+				return
 			}
-
-			msgbytes = nil
-			f = nil
-
 		}
 
 		messages.Messages = append(messages.Messages, message)
 		payload, err := json.Marshal(messages)
 		if err == nil {
-			f.Post(*f.url, string(payload))
+			f.Post(*f.url, payload)
 		} else {
 			logging.LogError("Error marshalling", err)
 		}
-		message.Fields = nil
 	}()
 }
 
-func (f *Forwarder) Post(url, payload string) {
+func (f *Forwarder) Post(url string, payload []byte) {
 	if f.debug {
 		logging.LogStd("Post being sent", true)
 	}
-	request := gorequest.New()
-	post := request.Post(url)
-	post.TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	post.Set("Content-Type", "application/json")
-	post.Send(payload)
-	res, body, errs := post.End()
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		logging.LogError("Error building request", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := f.client.Do(req)
+	if err != nil {
+		logging.LogError("Error Posting data", err)
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
 	if f.debug {
-		logging.LogStd(fmt.Sprintf("Post response code %d with body %s", res.StatusCode, body), true)
-	}
-	if len(errs) > 0 {
-		logging.LogError("Error Posting data", errs[0])
-	}
-	if res.StatusCode != http.StatusOK {
-		logging.LogError("non 200 status code", fmt.Errorf("Status %d, body %s", res.StatusCode, body))
+		logging.LogStd(fmt.Sprintf("Post response code %s with body %s", resp.Status, body), true)
 	}
 }
 
