@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 	. "github.com/onsi/ginkgo"
@@ -66,6 +67,7 @@ var _ = Describe("Logger", func() {
 			fields["timestamp"] = int64(10)
 			fields["space"] = "test_space"
 			logger.ShipEvents(fields, "hello")
+			time.Sleep(2 * time.Second)
 		})
 	})
 

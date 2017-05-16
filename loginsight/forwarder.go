@@ -53,46 +53,48 @@ func contains(s []string, e string) bool {
 }
 
 func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
-	messages := Messages{}
-	message := Message{
-		Text: msg,
-	}
-
-	for k, v := range eventFields {
-		if k == "timestamp" {
-			message.Timestamp = v.(int64)
-		} else {
-			message.Fields = append(message.Fields, Field{Name: f.CreateKey(k), Content: fmt.Sprint(v)})
+	go func() {
+		messages := Messages{}
+		message := Message{
+			Text: msg,
 		}
-	}
 
-	if f.hasJSONLogMsg {
-
-		var obj interface{}
-		msgbytes := []byte(msg)
-		err := json.Unmarshal(msgbytes, &obj)
-		if err == nil {
-
-			for k, v := range obj.(map[string]interface{}) {
+		for k, v := range eventFields {
+			if k == "timestamp" {
+				message.Timestamp = v.(int64)
+			} else {
 				message.Fields = append(message.Fields, Field{Name: f.CreateKey(k), Content: fmt.Sprint(v)})
 			}
-		} else {
-			logging.LogError("Error unmarshalling", err)
 		}
 
-		msgbytes = nil
-		f = nil
+		if f.hasJSONLogMsg {
 
-	}
+			var obj interface{}
+			msgbytes := []byte(msg)
+			err := json.Unmarshal(msgbytes, &obj)
+			if err == nil {
 
-	messages.Messages = append(messages.Messages, message)
-	payload, err := json.Marshal(messages)
-	if err == nil {
-		f.Post(*f.url, string(payload))
-	} else {
-		logging.LogError("Error marshalling", err)
-	}
-	message.Fields = nil
+				for k, v := range obj.(map[string]interface{}) {
+					message.Fields = append(message.Fields, Field{Name: f.CreateKey(k), Content: fmt.Sprint(v)})
+				}
+			} else {
+				logging.LogError("Error unmarshalling", err)
+			}
+
+			msgbytes = nil
+			f = nil
+
+		}
+
+		messages.Messages = append(messages.Messages, message)
+		payload, err := json.Marshal(messages)
+		if err == nil {
+			f.Post(*f.url, string(payload))
+		} else {
+			logging.LogError("Error marshalling", err)
+		}
+		message.Fields = nil
+	}()
 }
 
 func (f *Forwarder) Post(url, payload string) {
