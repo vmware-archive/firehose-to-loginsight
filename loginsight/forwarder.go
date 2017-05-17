@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 )
@@ -18,27 +17,26 @@ type Forwarder struct {
 	url                      *string
 	hasJSONLogMsg            bool
 	debug                    bool
-	client                   *http.Client
+	channel                  chan *ChannelMessage
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
-func NewForwarder(logInsightServer string, logInsightPort int, logInsightReservedFields, logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool) logging.Logging {
+func NewForwarder(logInsightServer string, logInsightPort int, logInsightReservedFields, logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool, concurrentWorkers int) logging.Logging {
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
 	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
-	tr := &http.Transport{
-		MaxIdleConns:       10,
-		IdleConnTimeout:    30 * time.Second,
-		DisableCompression: true,
-		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
-	}
-	return &Forwarder{
+	theForwarder := &Forwarder{
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
 		url:           &url,
 		hasJSONLogMsg: logInsightHasJsonLogMsg,
 		debug:         debugging,
-		client:        &http.Client{Transport: tr},
+		channel:       make(chan *ChannelMessage, 1024),
 	}
+	for i := 0; i < concurrentWorkers; i++ {
+		go theForwarder.ConsumeMessages()
+	}
+
+	return theForwarder
 }
 
 func (f *Forwarder) Connect() bool {
@@ -63,13 +61,26 @@ func contains(s []string, e string) bool {
 }
 
 func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
-	go func() {
+	channelMessage := &ChannelMessage{
+		eventFields: eventFields,
+		msg:         msg,
+	}
+	f.channel <- channelMessage
+}
+
+func (f *Forwarder) ConsumeMessages() {
+	tr := &http.Transport{
+		DisableCompression: true,
+		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	for channelMessage := range f.channel {
 		messages := Messages{}
 		message := Message{
-			Text: msg,
+			Text: channelMessage.msg,
 		}
 
-		for k, v := range eventFields {
+		for k, v := range channelMessage.eventFields {
 			if k == "timestamp" {
 				message.Timestamp = v.(int64)
 			} else {
@@ -80,7 +91,7 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		if f.hasJSONLogMsg {
 
 			var obj map[string]interface{}
-			msgbytes := []byte(msg)
+			msgbytes := []byte(channelMessage.msg)
 			err := json.Unmarshal(msgbytes, &obj)
 			if err == nil {
 				for k, v := range obj {
@@ -95,14 +106,14 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 		messages.Messages = append(messages.Messages, message)
 		payload, err := json.Marshal(messages)
 		if err == nil {
-			f.Post(*f.url, payload)
+			f.Post(client, *f.url, payload)
 		} else {
 			logging.LogError("Error marshalling", err)
 		}
-	}()
+	}
 }
 
-func (f *Forwarder) Post(url string, payload []byte) {
+func (f *Forwarder) Post(client *http.Client, url string, payload []byte) {
 	if f.debug {
 		logging.LogStd("Post being sent", true)
 	}
@@ -113,7 +124,7 @@ func (f *Forwarder) Post(url string, payload []byte) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := f.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		logging.LogError("Error Posting data", err)
 		return
@@ -138,4 +149,9 @@ type Message struct {
 type Field struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
+}
+
+type ChannelMessage struct {
+	eventFields map[string]interface{}
+	msg         string
 }
