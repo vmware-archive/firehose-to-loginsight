@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 )
@@ -27,10 +28,10 @@ func NewForwarder(logInsightServer string, logInsightPort int, logInsightReserve
 	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
 	theForwarder := &Forwarder{
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
-		url:           &url,
-		hasJSONLogMsg: logInsightHasJsonLogMsg,
-		debug:         debugging,
-		channel:       make(chan *ChannelMessage, 1024),
+		url:                      &url,
+		hasJSONLogMsg:            logInsightHasJsonLogMsg,
+		debug:                    debugging,
+		channel:                  make(chan *ChannelMessage, 1024),
 	}
 	for i := 0; i < concurrentWorkers; i++ {
 		go theForwarder.ConsumeMessages()
@@ -69,11 +70,16 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 }
 
 func (f *Forwarder) ConsumeMessages() {
-	tr := &http.Transport{
-		DisableCompression: true,
-		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableCompression:  true,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
 	}
-	client := &http.Client{Transport: tr}
+
 	for channelMessage := range f.channel {
 		messages := Messages{}
 		message := Message{
