@@ -10,7 +10,7 @@ imports:
 - name: github.com/boltdb/bolt
   version: 4d30731e9122988d2012a9574c43f80f054a0d3b
 - name: github.com/cloudfoundry-community/firehose-to-syslog
-  version: aadc5b397a2da2ea2e4a02edd7684421c8200a80
+  version: c55db63705768619a44c4d146615b6cb0f0504ac
   subpackages:
   - caching
   - eventRouting
@@ -55,9 +55,9 @@ imports:
 - name: github.com/RackSec/srslog
   version: a974ba6f7fb527d2ddc73ee9c05d3e2ccc0af0dc
 - name: github.com/shinji62/logrus-syslog-ng
-  version: 2b60df6a829a654a0456501c6092e5307f674d76
-- name: github.com/Sirupsen/logrus
-  version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
+  version: 8a6b62b97b5a08b31fe611b3f7940380945fb88f
+- name: github.com/sirupsen/logrus
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: golang.org/x/net
   version: c9b681d35165f1995d6f3034e61f8761d4b90c99
   subpackages:
