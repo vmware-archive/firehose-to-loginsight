@@ -98,7 +98,7 @@ uaac client add firehose-to-loginsight \
       --name firehose-to-loginsight \
       --secret [your_client_secret] \
       --authorized_grant_types client_credentials,refresh_token \
-      --authorities doppler.firehose,cloud_controller.admin
+      --authorities doppler.firehose,cloud_controller.admin_read_only
 ```
 
 ## Download the latest release of firehose-to-loginsight from GITHub releases (https://github.com/pivotalservices/firehose-to-loginsight/releases)
