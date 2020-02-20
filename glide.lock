@@ -25,7 +25,8 @@ imports:
 - name: github.com/cloudfoundry-incubator/uaago
   version: 1db9cfd27865007e07ffd5914c0fdf5fb7fc09ba
 - name: github.com/cloudfoundry/noaa
-  version: 89f0843d0ab59863cc78fc44ca5e4ed8c986677e
+  version: b1f4a40db7f8a80e7839c8c17992a30bf1fece1b
+  repo: https://github.com/calebwashburn/noaa
   subpackages:
   - consumer
   - consumer/internal

@@ -12,6 +12,7 @@ import:
   - events
 - package: github.com/cloudfoundry/noaa
   version: master
+  repo: https://github.com/calebwashburn/noaa
   subpackages:
   - consumer
   - consumer/internal
