@@ -19,10 +19,13 @@ type Forwarder struct {
 	hasJSONLogMsg            bool
 	debug                    bool
 	channel                  chan *ChannelMessage
+	client                   *http.Client
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
-func NewForwarder(logInsightServer string, logInsightPort int, logInsightReservedFields, logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool, concurrentWorkers int) logging.Logging {
+func NewForwarder(logInsightServer string, logInsightPort int, logInsightReservedFields,
+	logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool, concurrentWorkers int,
+	maxIdleConns, maxIdleConnsPerHost int, idleConnTimeout int32) logging.Logging {
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
 	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
@@ -32,6 +35,15 @@ func NewForwarder(logInsightServer string, logInsightPort int, logInsightReserve
 		hasJSONLogMsg:            logInsightHasJsonLogMsg,
 		debug:                    debugging,
 		channel:                  make(chan *ChannelMessage, 1024),
+		client: &http.Client{
+			Transport: &http.Transport{
+				DisableCompression:  true,
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+				MaxIdleConns:        maxIdleConns,
+				MaxIdleConnsPerHost: maxIdleConnsPerHost,
+				IdleConnTimeout:     time.Duration(idleConnTimeout) * time.Second,
+			},
+		},
 	}
 	for i := 0; i < concurrentWorkers; i++ {
 		go theForwarder.ConsumeMessages()
@@ -70,16 +82,6 @@ func (f *Forwarder) ShipEvents(eventFields map[string]interface{}, msg string) {
 }
 
 func (f *Forwarder) ConsumeMessages() {
-	client := &http.Client{
-		Transport: &http.Transport{
-			DisableCompression:  true,
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 100,
-			IdleConnTimeout:     90 * time.Second,
-		},
-	}
-
 	for channelMessage := range f.channel {
 		messages := Messages{}
 		message := Message{
@@ -112,14 +114,14 @@ func (f *Forwarder) ConsumeMessages() {
 		messages.Messages = append(messages.Messages, message)
 		payload, err := json.Marshal(messages)
 		if err == nil {
-			f.Post(client, *f.url, payload)
+			f.Post(*f.url, payload)
 		} else {
 			logging.LogError("Error marshalling", err)
 		}
 	}
 }
 
-func (f *Forwarder) Post(client *http.Client, url string, payload []byte) {
+func (f *Forwarder) Post(url string, payload []byte) {
 	if f.debug {
 		logging.LogStd("Post being sent", true)
 	}
@@ -130,7 +132,7 @@ func (f *Forwarder) Post(client *http.Client, url string, payload []byte) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		logging.LogError("Error Posting data", err)
 		return

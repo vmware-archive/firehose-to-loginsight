@@ -38,6 +38,9 @@ Flags:
   --cc-pull-time=60s             CloudController Polling time in sec
   --extra-fields=""              Extra fields you want to annotate your events with, example:
                                  '--extra-fields=env:dev,something:other
+  --max-idle-connections         Max http idle connections - default 100
+	--max-idle-connections-per-host max idle connections per host - default 100
+  --idle-connection-timeout-seconds seconds for timeout - default 90
   --version                      Show application version.
 ```
 

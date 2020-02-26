@@ -48,7 +48,7 @@ var _ = Describe("Logger", func() {
 			server = NewTLSServer()
 			url := server.URL()
 			port, _ := strconv.Atoi(url[strings.LastIndex(url, ":")+1:])
-			logger = loginsight.NewForwarder("127.0.0.1", port, "", "1", false, true, 5)
+			logger = loginsight.NewForwarder("127.0.0.1", port, "", "1", false, true, 5, 100, 100, 90)
 		})
 
 		AfterEach(func() {
