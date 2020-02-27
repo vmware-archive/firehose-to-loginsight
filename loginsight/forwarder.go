@@ -19,7 +19,9 @@ type Forwarder struct {
 	hasJSONLogMsg            bool
 	debug                    bool
 	channel                  chan *ChannelMessage
-	client                   *http.Client
+	maxIdleConns             int
+	maxIdleConnsPerHost      int
+	idleConnTimeout          int32
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
@@ -35,15 +37,9 @@ func NewForwarder(logInsightServer string, logInsightPort int, logInsightReserve
 		hasJSONLogMsg:            logInsightHasJsonLogMsg,
 		debug:                    debugging,
 		channel:                  make(chan *ChannelMessage, 1024),
-		client: &http.Client{
-			Transport: &http.Transport{
-				DisableCompression:  true,
-				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-				MaxIdleConns:        maxIdleConns,
-				MaxIdleConnsPerHost: maxIdleConnsPerHost,
-				IdleConnTimeout:     time.Duration(idleConnTimeout) * time.Second,
-			},
-		},
+		maxIdleConns:             maxIdleConns,
+		maxIdleConnsPerHost:      maxIdleConnsPerHost,
+		idleConnTimeout:          idleConnTimeout,
 	}
 	for i := 0; i < concurrentWorkers; i++ {
 		go theForwarder.ConsumeMessages()
@@ -131,8 +127,16 @@ func (f *Forwarder) Post(url string, payload []byte) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := f.client.Do(req)
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableCompression:  true,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			MaxIdleConns:        f.maxIdleConns,
+			MaxIdleConnsPerHost: f.maxIdleConnsPerHost,
+			IdleConnTimeout:     time.Duration(f.idleConnTimeout) * time.Second,
+		},
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		logging.LogError("Error Posting data", err)
 		return
