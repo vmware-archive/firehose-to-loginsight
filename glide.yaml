@@ -1,11 +1,11 @@
 package: github.com/pivotalservices/firehose-to-loginsight
 import:
 - package: github.com/cloudfoundry-community/firehose-to-syslog
-  version: 3.3.2
+  version: 4.1.0
 - package: gopkg.in/alecthomas/kingpin.v2
 - package: golang.org/x/oauth2
 - package: github.com/cloudfoundry-community/go-cfclient
-  version: 7b15efc43291ece6f107ed34f9684ff5f6454de3
+  version: master
 - package: github.com/cloudfoundry/sonde-go
   version: master
   subpackages:
@@ -22,9 +22,16 @@ import:
 - package: golang.org/x/net
   version: master
 - package: github.com/shinji62/logrus-syslog-ng
-  version: 8a6b62b97b5a08b31fe611b3f7940380945fb88f
+  version: master
 - package: github.com/sirupsen/logrus
-  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+  version: master
+- package: code.cloudfoundry.org/go-diodes
+- package: github.com/fukata/golang-stats-api-handler
+  version: ^1.0.0
+- package: golang.org/x/sys
+  version: master
+  subpackages:
+  - unix
 testImport:
 - package: github.com/onsi/ginkgo
   version: master

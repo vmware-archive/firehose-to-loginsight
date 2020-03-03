@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/eventRouting"
 	"github.com/cloudfoundry-community/firehose-to-syslog/firehoseclient"
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
+	"github.com/cloudfoundry-community/firehose-to-syslog/stats"
 	"github.com/cloudfoundry-community/firehose-to-syslog/uaatokenrefresher"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/pivotalservices/firehose-to-loginsight/loginsight"
@@ -24,8 +28,6 @@ var (
 	clientSecret                 = kingpin.Flag("client-secret", "Client Secret.").Default("admin-client-secret").OverrideDefaultFromEnvar("FIREHOSE_CLIENT_SECRET").String()
 	skipSSLValidation            = kingpin.Flag("skip-ssl-validation", "Please don't").Default("false").OverrideDefaultFromEnvar("SKIP_SSL_VALIDATION").Bool()
 	keepAlive                    = kingpin.Flag("fh-keep-alive", "Keep Alive duration for the firehose consumer").Default("25s").OverrideDefaultFromEnvar("FH_KEEP_ALIVE").Duration()
-	logEventTotals               = kingpin.Flag("log-event-totals", "Logs the counters for all selected events since nozzle was last started.").Default("false").OverrideDefaultFromEnvar("LOG_EVENT_TOTALS").Bool()
-	logEventTotalsTime           = kingpin.Flag("log-event-totals-time", "How frequently the event totals are calculated (in sec).").Default("30s").OverrideDefaultFromEnvar("LOG_EVENT_TOTALS_TIME").Duration()
 	wantedEvents                 = kingpin.Flag("events", fmt.Sprintf("Comma separated list of events you would like. Valid options are %s", eventRouting.GetListAuthorizedEventEvents())).Default("LogMessage").OverrideDefaultFromEnvar("EVENTS").String()
 	boltDatabasePath             = kingpin.Flag("boltdb-path", "Bolt Database path ").Default("my.db").OverrideDefaultFromEnvar("BOLTDB_PATH").String()
 	tickerTime                   = kingpin.Flag("cc-pull-time", "CloudController Polling time in sec").Default("60s").OverrideDefaultFromEnvar("CF_PULL_TIME").Duration()
@@ -40,6 +42,14 @@ var (
 	maxIdleConnections           = kingpin.Flag("max-idle-connections", "Max http idle connections").Default("100").OverrideDefaultFromEnvar("MAX_IDLE_CONNECTIONS").Int()
 	maxIdleConnectionsPerHost    = kingpin.Flag("max-idle-connections-per-host", "max idle connections per host").Default("100").OverrideDefaultFromEnvar("MAX_IDLE_CONNECTIONS_PER_HOST").Int()
 	idleConnectionTimeoutSeconds = kingpin.Flag("idle-connection-timeout-seconds", "seconds for timeout").Default("90").OverrideDefaultFromEnvar("IDLE_CONNECTION_TIMEOUT_SECONDS").Int32()
+	minRetryDelay                = kingpin.Flag("min-retry-delay", "Doppler Cloud Foundry Doppler min. retry delay duration").Default("500ms").Envar("MIN_RETRY_DELAY").Duration()
+	maxRetryDelay                = kingpin.Flag("max-retry-delay", "Doppler Cloud Foundry Doppler max. retry delay duration").Default("1m").Envar("MAX_RETRY_DELAY").Duration()
+	maxRetryCount                = kingpin.Flag("max-retry-count", "Doppler Cloud Foundry Doppler max. retry Count duration").Default("1000").Envar("MAX_RETRY_COUNT").Int()
+	bufferSize                   = kingpin.Flag("logs-buffer-size", "Number of envelope to be buffered").Default("10000").Envar("LOGS_BUFFER_SIZE").Int()
+	statServer                   = kingpin.Flag("enable-stats-server", "Will enable stats server on 8080").Default("false").Envar("ENABLE_STATS_SERVER").Bool()
+	requestLimit                 = kingpin.Flag("cc-rps", "CloudController Polling request by second").Default("50").Envar("CF_RPS").Int()
+	orgs                         = kingpin.Flag("orgs", "Forwarded on the app logs from theses organisations' example: --orgs=org1,org2").Default("").Envar("ORGS").String()
+	ignoreMissingApps            = kingpin.Flag("ignore-missing-apps", "Enable throttling on cache lookup for missing apps").Envar("IGNORE_MISSING_APPS").Default("false").Bool()
 )
 
 var (
@@ -78,12 +88,11 @@ func main() {
 	if err != nil {
 		log.Fatal("New Client: ", err)
 		os.Exit(1)
-
 	}
 	if len(*dopplerEndpoint) > 0 {
 		cfClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
 	}
-
+	fmt.Println(cfClient.Endpoint.DopplerEndpoint)
 	logging.LogStd(fmt.Sprintf("Using %s as doppler endpoint", cfClient.Endpoint.DopplerEndpoint), true)
 
 	//Creating Caching
@@ -91,38 +100,51 @@ func main() {
 	if caching.IsNeeded(*wantedEvents) {
 		config := &caching.CachingBoltConfig{
 			Path:               *boltDatabasePath,
-			IgnoreMissingApps:  true,
+			IgnoreMissingApps:  *ignoreMissingApps,
 			CacheInvalidateTTL: *tickerTime,
+			RequestBySec:       *requestLimit,
 		}
 		cachingClient, err = caching.NewCachingBolt(cfClient, config)
+
 		if err != nil {
-			log.Fatal("Error setting up caching client: ", err)
+			log.Fatal("Failed to create boltdb cache: ", err)
 			os.Exit(1)
 		}
 	} else {
 		cachingClient = caching.NewCachingEmpty()
 	}
+
+	if err := cachingClient.Open(); err != nil {
+		log.Fatal("Error open cache: ", err)
+		os.Exit(1)
+	}
+	defer cachingClient.Close()
+
+	//Adding Stats
+	statistic := stats.NewStats()
+	go statistic.PerSec()
+
+	////Starting Http Server for Stats
+	if *statServer {
+		Server := &stats.Server{
+			Logger: log.New(os.Stdout, "", 1),
+			Stats:  statistic,
+		}
+
+		go Server.Start()
+	}
+
 	//Creating Events
-	events := eventRouting.NewEventRouting(cachingClient, loggingClient)
+	eventFilters := []eventRouting.EventFilter{eventRouting.HasIgnoreField, eventRouting.NotInCertainOrgs(*orgs)}
+	events := eventRouting.NewEventRouting(cachingClient, loggingClient, statistic, eventFilters)
 	err = events.SetupEventRouting(*wantedEvents)
 	if err != nil {
 		log.Fatal("Error setting up event routing: ", err)
 		os.Exit(1)
-
 	}
 
 	//Set extrafields if needed
 	events.SetExtraFields(*extraFields)
-
-	//Enable LogsTotalevent
-	if *logEventTotals {
-		logging.LogStd("Logging total events", true)
-		events.LogEventTotals(*logEventTotalsTime)
-	}
-
-	if err := cachingClient.Open(); err != nil {
-		log.Fatal("Error open cache: ", err)
-	}
 
 	uaaRefresher, err := uaatokenrefresher.NewUAATokenRefresher(
 		cfClient.Endpoint.AuthEndpoint,
@@ -140,23 +162,38 @@ func main() {
 		InsecureSSLSkipVerify:  *skipSSLValidation,
 		IdleTimeoutSeconds:     *keepAlive,
 		FirehoseSubscriptionID: *subscriptionID,
+		MinRetryDelay:          *minRetryDelay,
+		MaxRetryDelay:          *maxRetryDelay,
+		MaxRetryCount:          *maxRetryCount,
+		BufferSize:             *bufferSize,
 	}
 
 	if loggingClient.Connect() || *debug {
 
 		logging.LogStd("Connecting to Firehose...", true)
-		firehoseClient := firehoseclient.NewFirehoseNozzle(uaaRefresher, events, firehoseConfig)
-		err = firehoseClient.Start()
-		if err != nil {
-			logging.LogError("Failed connecting to Firehose...Please check settings and try again!", err)
+		firehoseClient := firehoseclient.NewFirehoseNozzle(uaaRefresher, events, firehoseConfig, statistic)
 
-		} else {
-			logging.LogStd("Firehose Subscription Succesfull! Routing events...", true)
-		}
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
+		firehoseClient.Start(ctx)
+
+		signalChan := make(chan os.Signal, 1)
+		cleanupDone := make(chan bool)
+		signal.Notify(signalChan, os.Interrupt, os.Kill)
+		go func() {
+			for range signalChan {
+				fmt.Println("\nSignal Received, Stop reading and starting Draining...")
+				firehoseClient.StopReading()
+				cctx, tcancel := context.WithTimeout(context.TODO(), 30*time.Second)
+				tcancel()
+				firehoseClient.Draining(cctx)
+				cleanupDone <- true
+			}
+		}()
+		<-cleanupDone
 	} else {
 		logging.LogError("Failed connecting Log Insight...Please check settings and try again!", "")
+		os.Exit(1)
 	}
-
-	defer cachingClient.Close()
 }

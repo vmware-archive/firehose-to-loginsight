@@ -10,38 +10,49 @@ Firehose nozzle to pull events and send to LogInsight ingestion API inspired and
 # Options
 
 ```bash
-usage: firehose-to-loginsight --api-endpoint=API-ENDPOINT [<flags>]
+usage: main --api-endpoint=API-ENDPOINT [<flags>]
 
 Flags:
-  --help                         Show context-sensitive help (also try --help-long and --help-man).
-  --debug                        Enable debug mode. This disables forwarding to syslog
-  --api-endpoint=API-ENDPOINT    Api endpoint address. For bosh-lite installation of CF: https://api.10.244.0.34.xip.io
-  --doppler-endpoint=DOPPLER-ENDPOINT
-  --insight-server=INSIGHT_SERVER
-                                 log insight server address
-  --insight-server-port=INSIGHT_SERVER_PORT
-                                 log insight server port defaults to 9543
-  --insight-reserved-fields=INSIGHT_RESERVED_FIELDS
-                                 comma delimited list of reserved fields defaults to event_type
-  --insight-agent-id=INSIGHT_AGENT_ID
-                                 agent id for log insight. Defaults to 1
-  --subscription-id="firehose"   Id for the subscription.
-  --client-id="admin"                 client id.
-  --client-secret="admin"             client secret.
-  --skip-ssl-validation          Please don't
-  --fh-keep-alive=25s            Keep Alive duration for the firehose consumer
-  --log-event-totals             Logs the counters for all selected events since nozzle was last started.
-  --log-event-totals-time=30s    How frequently the event totals are calculated (in sec).
-  --events="LogMessage"          Comma separated list of events you would like. Valid options are Error, ContainerMetric,
-                                 HttpStart, HttpStop, HttpStartStop, LogMessage, ValueMetric, CounterEvent
-  --boltdb-path="my.db"          Bolt Database path
-  --cc-pull-time=60s             CloudController Polling time in sec
-  --extra-fields=""              Extra fields you want to annotate your events with, example:
-                                 '--extra-fields=env:dev,something:other
-  --max-idle-connections         Max http idle connections - default 100
-	--max-idle-connections-per-host max idle connections per host - default 100
-  --idle-connection-timeout-seconds seconds for timeout - default 90
-  --version                      Show application version.
+  --help                       Show context-sensitive help (also try --help-long and --help-man).
+  --debug                      Enable debug mode. This enables additional logging
+  --api-endpoint=API-ENDPOINT  Api endpoint address. For bosh-lite installation of CF: https://api.10.244.0.34.xip.io
+  --doppler-endpoint=DOPPLER-ENDPOINT  
+                               Overwrite default doppler endpoint return by /v2/info
+  --subscription-id="firehose-to-loginsight"  
+                               Id for the subscription.
+  --client-id="admin"          Client ID.
+  --client-secret="admin-client-secret"  
+                               Client Secret.
+  --skip-ssl-validation        Please don't
+  --fh-keep-alive=25s          Keep Alive duration for the firehose consumer
+  --events="LogMessage"        Comma separated list of events you would like. Valid options are ContainerMetric, CounterEvent, Error, HttpStartStop, LogMessage,
+                               ValueMetric
+  --boltdb-path="my.db"        Bolt Database path
+  --cc-pull-time=60s           CloudController Polling time in sec
+  --extra-fields=""            Extra fields you want to annotate your events with, example: '--extra-fields=env:dev,something:other
+  --insight-server=INSIGHT-SERVER  
+                               log insight server address
+  --insight-server-port=9543   log insight server port
+  --insight-reserved-fields="event_type"  
+                               comma delimited list of fields that are reserved
+  --insight-agent-id="1"       agent id for log insight
+  --insight-has-json-log-msg   app log message can be json
+  --concurrent-workers=50      number of concurrent workers pulling messages from channel
+  --noop                       if it should avoid sending to log-insight
+  --max-idle-connections=100   Max http idle connections
+  --max-idle-connections-per-host=100  
+                               max idle connections per host
+  --idle-connection-timeout-seconds=90  
+                               seconds for timeout
+  --min-retry-delay=500ms      Doppler Cloud Foundry Doppler min. retry delay duration
+  --max-retry-delay=1m         Doppler Cloud Foundry Doppler max. retry delay duration
+  --max-retry-count=1000       Doppler Cloud Foundry Doppler max. retry Count duration
+  --logs-buffer-size=10000     Number of envelope to be buffered
+  --enable-stats-server        Will enable stats server on 8080
+  --cc-rps=50                  CloudController Polling request by second
+  --orgs=""                    Forwarded on the app logs from theses organisations' example: --orgs=org1,org2
+  --ignore-missing-apps        Enable throttling on cache lookup for missing apps
+  --version                    Show application version.
 ```
 
 ** !!! **--events** Please use --help to get last updated event.

@@ -1,6 +1,12 @@
-hash: 06695404bfdcc408633d68b10b407ac381f4bc69d560587f3c58a0719a2532e0
-updated: 2017-05-16T16:51:05.705034033-06:00
+hash: d71fbbc7b1f2829dfe7cab024140ba7a32e2669711788f90d01abc39e8fbacf5
+updated: 2020-03-03T09:11:30.030516-07:00
 imports:
+- name: code.cloudfoundry.org/go-diodes
+  version: f77fb823c7ee0156ed4cdadaf4f79ac3fd84613f
+- name: code.cloudfoundry.org/gofileutils
+  version: 4d0c80011a0f37da1711c184028bc40137cd45af
+  subpackages:
+  - fileutils
 - name: github.com/alecthomas/template
   version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
   subpackages:
@@ -10,18 +16,20 @@ imports:
 - name: github.com/boltdb/bolt
   version: 4d30731e9122988d2012a9574c43f80f054a0d3b
 - name: github.com/cloudfoundry-community/firehose-to-syslog
-  version: c55db63705768619a44c4d146615b6cb0f0504ac
+  version: 5f743b57b7efa046c92b6ea570123d0aff489787
   subpackages:
   - caching
+  - diodes
   - eventRouting
   - events
   - extrafields
   - firehoseclient
   - logging
+  - stats
   - uaatokenrefresher
   - utils
 - name: github.com/cloudfoundry-community/go-cfclient
-  version: 7b15efc43291ece6f107ed34f9684ff5f6454de3
+  version: 35bcce23fc5f8b9969723ac38c0de1f82c4d3471
 - name: github.com/cloudfoundry-incubator/uaago
   version: 1db9cfd27865007e07ffd5914c0fdf5fb7fc09ba
 - name: github.com/cloudfoundry/noaa
@@ -32,9 +40,11 @@ imports:
   - consumer/internal
   - errors
 - name: github.com/cloudfoundry/sonde-go
-  version: 78019103037ae46207993c8816e970d85bf1a9e4
+  version: b33733203bb48d7c56de7cb639d77f78b0449d19
   subpackages:
   - events
+- name: github.com/fukata/golang-stats-api-handler
+  version: 90f0b59102629831cc109845475a8d77043412ec
 - name: github.com/gogo/protobuf
   version: a4cceea7a401a73fefafd1a21fedbd4694124a82
   subpackages:
@@ -46,33 +56,43 @@ imports:
   subpackages:
   - proto
 - name: github.com/gorilla/websocket
-  version: 17634340a83afe0cab595e40fbc63f6ffa1d8915
+  version: c3e18be99d19e6b3e8f1559eea2c161a665c4b6b
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
 - name: github.com/mailru/easyjson
   version: 159cdb893c982e3d1bc6450322fedd514f9c9de3
   subpackages:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/Masterminds/semver
+  version: 3c560837130448941620d7694991d3ec440aefc0
+- name: github.com/pkg/errors
+  version: ba968bfe8b2f7e042a574c888954fccecfa385b4
 - name: github.com/RackSec/srslog
   version: a974ba6f7fb527d2ddc73ee9c05d3e2ccc0af0dc
 - name: github.com/shinji62/logrus-syslog-ng
-  version: 8a6b62b97b5a08b31fe611b3f7940380945fb88f
+  version: 3974ebb047a06d099f17633f995201d9089434fb
 - name: github.com/sirupsen/logrus
-  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+  version: 77ab282a06b0b4dd37f6ada06e28473bba7e40cb
+- name: go.uber.org/ratelimit
+  version: ecb970a6a3b3b0a49f74254576f1e939a1950aa4
+  subpackages:
+  - internal/clock
 - name: golang.org/x/net
-  version: c9b681d35165f1995d6f3034e61f8761d4b90c99
+  version: 244492dfa37ae2ce87222fd06250a03160745faa
   subpackages:
   - context
   - html
   - html/atom
   - html/charset
 - name: golang.org/x/oauth2
-  version: da3ce8d62a7f77aadfda06cb82bd604d6469c645
+  version: 2baa8a1b9338cf13d9eeb27696d761155fa480be
   subpackages:
   - clientcredentials
   - internal
 - name: golang.org/x/sys
-  version: 9d4e42a20653790449273b3c85e67d6d8bae6e2e
+  version: 1b2967e3c290b7c545b3db0deeda16e9be4f98a2
   subpackages:
   - unix
 - name: google.golang.org/appengine
@@ -88,8 +108,15 @@ imports:
 - name: gopkg.in/alecthomas/kingpin.v2
   version: e9044be3ab2a8e11d4e1f418d12f0790d57e8d70
 testImports:
+- name: github.com/hpcloud/tail
+  version: a1dbeea552b7c8df4b542c66073e393de198a800
+  subpackages:
+  - ratelimiter
+  - util
+  - watch
+  - winfile
 - name: github.com/onsi/ginkgo
-  version: 83438ca4278f2f56757b9ab2cb15dd4f596d84e8
+  version: 40598150331533e3cd497f21dcce387dae84b561
   subpackages:
   - config
   - internal/codelocation
@@ -109,7 +136,7 @@ testImports:
   - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: 00acfa9d92a386415bd235ab069c52063f925998
+  version: 6be6c439588487cd908a3a700795660c2a16dfec
   subpackages:
   - format
   - ghttp
@@ -141,5 +168,13 @@ testImports:
   - language
   - runes
   - transform
+- name: golang.org/x/xerrors
+  version: 9bdfabe68543c54f90421aeb9a60ef8061b5b544
+  subpackages:
+  - internal
+- name: gopkg.in/fsnotify/fsnotify.v1
+  version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
+- name: gopkg.in/tomb.v1
+  version: c131134a1947e9afd9cecfe11f4c6dff0732ae58
 - name: gopkg.in/yaml.v2
   version: e4d366fc3c7938e2958e662b4258c7a89e1f0e3e
