@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 )
@@ -19,31 +18,23 @@ type Forwarder struct {
 	hasJSONLogMsg            bool
 	debug                    bool
 	channel                  chan *ChannelMessage
-	client                   *http.Client
 }
 
 //NewForwarder - Creates new instance of LogInsight that implments logging.Logging interface
 func NewForwarder(logInsightServer string, logInsightPort int, logInsightReservedFields,
-	logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool, concurrentWorkers int,
-	maxIdleConns, maxIdleConnsPerHost int, idleConnTimeout int32) logging.Logging {
+	logInsightAgentID string, logInsightHasJsonLogMsg, debugging bool, concurrentWorkers int, insecureSkipVerify bool) logging.Logging {
 
 	url := fmt.Sprintf("https://%s:%d/api/v1/messages/ingest/%s", logInsightServer, logInsightPort, logInsightAgentID)
 	logging.LogStd(fmt.Sprintf("Using %s for log insight", url), true)
+
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+
 	theForwarder := &Forwarder{
 		LogInsightReservedFields: strings.Split(logInsightReservedFields, ","),
 		url:                      &url,
 		hasJSONLogMsg:            logInsightHasJsonLogMsg,
 		debug:                    debugging,
 		channel:                  make(chan *ChannelMessage, 1024),
-		client: &http.Client{
-			Transport: &http.Transport{
-				DisableCompression:  true,
-				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-				MaxIdleConns:        maxIdleConns,
-				MaxIdleConnsPerHost: maxIdleConnsPerHost,
-				IdleConnTimeout:     time.Duration(idleConnTimeout) * time.Second,
-			},
-		},
 	}
 	for i := 0; i < concurrentWorkers; i++ {
 		go theForwarder.ConsumeMessages()
@@ -125,14 +116,7 @@ func (f *Forwarder) Post(url string, payload []byte) {
 	if f.debug {
 		logging.LogStd("Post being sent", true)
 	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		logging.LogError("Error building request", err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := f.client.Do(req)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		logging.LogError("Error Posting data", err)
 		return
