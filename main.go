@@ -6,15 +6,17 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
+	"github.com/cloudfoundry-community/firehose-to-syslog/authclient"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/eventRouting"
 	"github.com/cloudfoundry-community/firehose-to-syslog/firehoseclient"
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 	"github.com/cloudfoundry-community/firehose-to-syslog/stats"
-	"github.com/cloudfoundry-community/firehose-to-syslog/uaatokenrefresher"
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-incubator/uaago"
 	"github.com/vmwarepivotallabs/firehose-to-loginsight/loginsight"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -47,6 +49,7 @@ var (
 	requestLimit             = kingpin.Flag("cc-rps", "CloudController Polling request by second").Default("50").Envar("CF_RPS").Int()
 	orgs                     = kingpin.Flag("orgs", "Forwarded on the app logs from theses organisations' example: --orgs=org1,org2").Default("").Envar("ORGS").String()
 	ignoreMissingApps        = kingpin.Flag("ignore-missing-apps", "Enable throttling on cache lookup for missing apps").Envar("IGNORE_MISSING_APPS").Default("false").Bool()
+	stripAppSuffixes         = kingpin.Flag("strip-app-name-suffixes", "Suffixes that should be stripped from application names, comma separated").Envar("STRIP_APP_NAME_SUFFIXES").Default("").String()
 )
 
 var (
@@ -93,29 +96,43 @@ func main() {
 	logging.LogStd(fmt.Sprintf("Using %s as doppler endpoint", cfClient.Endpoint.DopplerEndpoint), true)
 
 	//Creating Caching
-	var cachingClient caching.Caching
-	if caching.IsNeeded(*wantedEvents) {
-		config := &caching.CachingBoltConfig{
-			Path:               *boltDatabasePath,
-			IgnoreMissingApps:  *ignoreMissingApps,
-			CacheInvalidateTTL: *tickerTime,
-			RequestBySec:       *requestLimit,
+	var cacheStore caching.CacheStore
+	switch {
+	case boltDatabasePath != nil && *boltDatabasePath != "":
+		cacheStore = &caching.BoltCacheStore{
+			Path: *boltDatabasePath,
 		}
-		cachingClient, err = caching.NewCachingBolt(cfClient, config)
-
-		if err != nil {
-			log.Fatal("Failed to create boltdb cache: ", err)
-			os.Exit(1)
-		}
-	} else {
-		cachingClient = caching.NewCachingEmpty()
+	default:
+		cacheStore = &caching.MemoryCacheStore{}
 	}
 
-	if err := cachingClient.Open(); err != nil {
+	if err := cacheStore.Open(); err != nil {
 		log.Fatal("Error open cache: ", err)
 		os.Exit(1)
 	}
-	defer cachingClient.Close()
+	defer cacheStore.Close()
+
+	cachingClient := caching.NewCacheLazyFill(
+		&caching.CFClientAdapter{
+			CF: cfClient,
+		},
+		cacheStore,
+		&caching.CacheLazyFillConfig{
+			IgnoreMissingApps:  *ignoreMissingApps,
+			CacheInvalidateTTL: *tickerTime,
+			StripAppSuffixes:   strings.Split(*stripAppSuffixes, ","),
+		})
+
+	if caching.IsNeeded(*wantedEvents) {
+		// Bootstrap cache
+		logging.LogStd("Pre-filling cache...", true)
+		err = cachingClient.FillCache()
+		if err != nil {
+			log.Fatal("Error pre-filling cache: ", err)
+			os.Exit(1)
+		}
+		logging.LogStd("Cache filled.", true)
+	}
 
 	//Adding Stats
 	statistic := stats.NewStats()
@@ -143,54 +160,46 @@ func main() {
 	//Set extrafields if needed
 	events.SetExtraFields(*extraFields)
 
-	uaaRefresher, err := uaatokenrefresher.NewUAATokenRefresher(
-		cfClient.Endpoint.AuthEndpoint,
-		*clientID,
-		*clientSecret,
-		*skipSSLValidation,
-	)
-
-	if err != nil {
-		logging.LogError(fmt.Sprint("Failed connecting to Get token from UAA..", err), "")
-	}
-
 	firehoseConfig := &firehoseclient.FirehoseConfig{
-		TrafficControllerURL:   cfClient.Endpoint.DopplerEndpoint,
+		RLPAddr:                strings.Replace(cfClient.Config.ApiAddress, "api", "log-stream", 1),
 		InsecureSSLSkipVerify:  *skipSSLValidation,
-		IdleTimeoutSeconds:     *keepAlive,
 		FirehoseSubscriptionID: *subscriptionID,
-		MinRetryDelay:          *minRetryDelay,
-		MaxRetryDelay:          *maxRetryDelay,
-		MaxRetryCount:          *maxRetryCount,
 		BufferSize:             *bufferSize,
 	}
 
 	if loggingClient.Connect() || *debug {
-
-		logging.LogStd("Connecting to Firehose...", true)
-		firehoseClient := firehoseclient.NewFirehoseNozzle(uaaRefresher, events, firehoseConfig, statistic)
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		firehoseClient.Start(ctx)
-
-		signalChan := make(chan os.Signal, 1)
-		cleanupDone := make(chan bool)
-		signal.Notify(signalChan, os.Interrupt, os.Kill)
-		go func() {
-			for range signalChan {
-				fmt.Println("\nSignal Received, Stop reading and starting Draining...")
-				firehoseClient.StopReading()
-				cctx, tcancel := context.WithTimeout(context.TODO(), 30*time.Second)
-				tcancel()
-				firehoseClient.Draining(cctx)
-				cleanupDone <- true
-			}
-		}()
-		<-cleanupDone
+		logging.LogStd("Connected to Syslog Server! Connecting to Firehose...", true)
 	} else {
-		logging.LogError("Failed connecting Log Insight...Please check settings and try again!", "")
+		log.Fatal("Failed connecting to the Syslog Server...Please check settings and try again!", "")
 		os.Exit(1)
 	}
+
+	uaa, err := uaago.NewClient(cfClient.Endpoint.AuthEndpoint)
+	if err != nil {
+		logging.LogError(fmt.Sprint("Failed connecting to Get token from UAA..", err), "")
+	}
+
+	ac := authclient.NewHttp(uaa, *clientID, *clientSecret, *skipSSLValidation)
+	firehoseClient := firehoseclient.NewFirehoseNozzle(events, firehoseConfig, statistic, ac)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	firehoseClient.Start(ctx)
+
+	signalChan := make(chan os.Signal, 1)
+	cleanupDone := make(chan bool)
+	signal.Notify(signalChan, os.Interrupt, os.Kill)
+	go func() {
+		for range signalChan {
+			fmt.Println("\nSignal Received, Stop reading and starting Draining...")
+			firehoseClient.StopReading()
+			cctx, tcancel := context.WithTimeout(context.TODO(), 30*time.Second)
+			tcancel()
+			firehoseClient.Draining(cctx)
+			cleanupDone <- true
+		}
+	}()
+	<-cleanupDone
+
 }
