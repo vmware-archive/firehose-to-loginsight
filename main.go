@@ -15,7 +15,7 @@ import (
 	"github.com/cloudfoundry-community/firehose-to-syslog/stats"
 	"github.com/cloudfoundry-community/firehose-to-syslog/uaatokenrefresher"
 	"github.com/cloudfoundry-community/go-cfclient"
-	"github.com/pivotalservices/firehose-to-loginsight/loginsight"
+	"github.com/vmwarepivotallabs/firehose-to-loginsight/loginsight"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
