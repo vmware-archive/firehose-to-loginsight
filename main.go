@@ -24,7 +24,6 @@ import (
 var (
 	debug                    = kingpin.Flag("debug", "Enable debug mode. This enables additional logging").Default("false").OverrideDefaultFromEnvar("DEBUG").Bool()
 	apiEndpoint              = kingpin.Flag("api-endpoint", "Api endpoint address. For bosh-lite installation of CF: https://api.10.244.0.34.xip.io").OverrideDefaultFromEnvar("API_ENDPOINT").Required().String()
-	dopplerEndpoint          = kingpin.Flag("doppler-endpoint", "Overwrite default doppler endpoint return by /v2/info").OverrideDefaultFromEnvar("DOPPLER_ENDPOINT").String()
 	subscriptionID           = kingpin.Flag("subscription-id", "Id for the subscription.").Default("firehose-to-loginsight").OverrideDefaultFromEnvar("FIREHOSE_SUBSCRIPTION_ID").String()
 	clientID                 = kingpin.Flag("client-id", "Client ID.").Default("admin").OverrideDefaultFromEnvar("FIREHOSE_CLIENT_ID").String()
 	clientSecret             = kingpin.Flag("client-secret", "Client Secret.").Default("admin-client-secret").OverrideDefaultFromEnvar("FIREHOSE_CLIENT_SECRET").String()
@@ -89,11 +88,6 @@ func main() {
 		log.Fatal("New Client: ", err)
 		os.Exit(1)
 	}
-	if len(*dopplerEndpoint) > 0 {
-		cfClient.Endpoint.DopplerEndpoint = *dopplerEndpoint
-	}
-	fmt.Println(cfClient.Endpoint.DopplerEndpoint)
-	logging.LogStd(fmt.Sprintf("Using %s as doppler endpoint", cfClient.Endpoint.DopplerEndpoint), true)
 
 	//Creating Caching
 	var cacheStore caching.CacheStore
@@ -160,8 +154,10 @@ func main() {
 	//Set extrafields if needed
 	events.SetExtraFields(*extraFields)
 
+	logStreamAddress := strings.Replace(cfClient.Config.ApiAddress, "api", "log-stream", 1)
+	logging.LogStd("Using LogStream address:"+logStreamAddress, true)
 	firehoseConfig := &firehoseclient.FirehoseConfig{
-		RLPAddr:                strings.Replace(cfClient.Config.ApiAddress, "api", "log-stream", 1),
+		RLPAddr:                logStreamAddress,
 		InsecureSSLSkipVerify:  *skipSSLValidation,
 		FirehoseSubscriptionID: *subscriptionID,
 		BufferSize:             *bufferSize,
